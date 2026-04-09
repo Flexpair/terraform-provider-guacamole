@@ -549,7 +549,11 @@ func convertResourceDataToGuacUser(d *schema.ResourceData) (types.GuacUser, erro
 
 func convertGuacUserToResourceData(d *schema.ResourceData, user *types.GuacUser) error {
 	d.Set("username", user.Username)
-	d.Set("password", user.Password)
+	// Guacamole API never returns password on read (write-only field).
+	// Preserve the configured value in state to prevent perpetual drift.
+	if user.Password != "" {
+		d.Set("password", user.Password)
+	}
 	d.Set("last_active", strconv.FormatInt(user.LastActive, 10))
 
 	attributes := map[string]interface{}{
