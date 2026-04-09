@@ -118,13 +118,12 @@ func dataSourceUser() *schema.Resource {
 }
 
 func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := readWithClient(m, d)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	username := d.Get("username").(string)
 

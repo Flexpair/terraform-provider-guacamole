@@ -79,13 +79,12 @@ func guacamoleUserGroup() *schema.Resource {
 }
 
 func resourceUserGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	group, err := convertResourceDataToGuacUserGroup(d)
 
@@ -192,13 +191,12 @@ Cleanup:
 }
 
 func resourceUserGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := readWithClient(m, d)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	identifier := d.Id()
 	group, err := client.ReadUserGroup(identifier)
@@ -257,9 +255,9 @@ func resourceUserGroupRead(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func resourceUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	if d.HasChanges("username", "attributes") {
@@ -425,17 +423,16 @@ func resourceUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func resourceUserGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	identifier := d.Id()
 
-	err = client.DeleteUserGroup(identifier)
+	err := client.DeleteUserGroup(identifier)
 	if err != nil {
 		return diag.FromErr(err)
 	}

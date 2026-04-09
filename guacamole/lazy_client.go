@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	guac "github.com/techBeck03/guacamole-api-client"
 )
 
@@ -17,6 +19,10 @@ import (
 // On first Get() call, it retries the connection with exponential backoff
 // (up to ~10 minutes total) to handle the case where the gateway VM has
 // just been launched and Docker/Guacamole is still starting up.
+//
+// When the provider URL is empty (common during Stacks multi-wave planning),
+// the client operates in "unconfigured" mode: Get() returns nil without error,
+// and resource Read functions treat this as "resource not found".
 type LazyClient struct {
 	config guac.Config
 	client *guac.Client
@@ -27,6 +33,43 @@ type LazyClient struct {
 // NewLazyClient stores the provider configuration without connecting.
 func NewLazyClient(config guac.Config) *LazyClient {
 	return &LazyClient{config: config}
+}
+
+// IsConfigured reports whether the provider has a non-empty server URL.
+func (lc *LazyClient) IsConfigured() bool {
+	return lc.config.URL != ""
+}
+
+// readWithClient returns an authenticated client for Read operations.
+// If the provider URL is empty (Stacks deferred planning), it clears the
+// resource ID and returns nil — telling Terraform the resource doesn't exist
+// yet, so the plan shows "create" instead of erroring.
+func readWithClient(m interface{}, d *schema.ResourceData) (*guac.Client, diag.Diagnostics) {
+	lc := m.(*LazyClient)
+	if !lc.IsConfigured() {
+		d.SetId("")
+		return nil, nil
+	}
+	client, err := lc.Get()
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	return client, nil
+}
+
+// writeWithClient returns an authenticated client for Create/Update/Delete.
+// If the provider URL is empty, it returns an error — write operations
+// cannot proceed without a configured server.
+func writeWithClient(m interface{}) (*guac.Client, diag.Diagnostics) {
+	lc := m.(*LazyClient)
+	if !lc.IsConfigured() {
+		return nil, diag.Errorf("guacamole provider: server URL not configured (gateway not yet deployed)")
+	}
+	client, err := lc.Get()
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	return client, nil
 }
 
 // Get returns an authenticated Guacamole client, connecting on first call.

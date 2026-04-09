@@ -148,10 +148,9 @@ func guacamoleUser() *schema.Resource {
 }
 
 func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	check := validateUser(d)
@@ -262,13 +261,12 @@ Cleanup:
 }
 
 func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := readWithClient(m, d)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	userID := d.Id()
 	user, err := client.ReadUser(userID)
@@ -327,9 +325,9 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 }
 
 func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	if d.HasChanges("username", "password", "last_active", "attributes") {
@@ -500,17 +498,16 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func resourceUserDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	userID := d.Id()
 
-	err = client.DeleteUser(userID)
+	err := client.DeleteUser(userID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

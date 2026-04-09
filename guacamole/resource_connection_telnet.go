@@ -292,13 +292,12 @@ func guacamoleConnectionTelnet() *schema.Resource {
 }
 
 func resourceConnectionTelnetRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := readWithClient(m, d)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	identifier := d.Id()
 
@@ -319,13 +318,12 @@ func resourceConnectionTelnetRead(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceConnectionTelnetCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	validate := validateConnectionTelnet(d, client)
 
@@ -339,7 +337,7 @@ func resourceConnectionTelnetCreate(ctx context.Context, d *schema.ResourceData,
 		return check
 	}
 
-	err = client.CreateConnection(&connection)
+	err := client.CreateConnection(&connection)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -356,13 +354,12 @@ func resourceConnectionTelnetCreate(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceConnectionTelnetUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "attributes", "parameters") {
 		validate := validateConnectionTelnet(d, client)
@@ -397,15 +394,14 @@ func resourceConnectionTelnetUpdate(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceConnectionTelnetDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
-	err = client.DeleteConnection(d.Id())
+	err := client.DeleteConnection(d.Id())
 
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)

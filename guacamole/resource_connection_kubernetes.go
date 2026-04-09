@@ -263,13 +263,12 @@ func guacamoleConnectionKubernetes() *schema.Resource {
 }
 
 func resourceConnectionKubernetesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := readWithClient(m, d)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	identifier := d.Id()
 
@@ -290,13 +289,12 @@ func resourceConnectionKubernetesRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceConnectionKubernetesCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	validate := validateConnectionKubernetes(d, client)
 
@@ -310,7 +308,7 @@ func resourceConnectionKubernetesCreate(ctx context.Context, d *schema.ResourceD
 		return check
 	}
 
-	err = client.CreateConnection(&connection)
+	err := client.CreateConnection(&connection)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -327,13 +325,12 @@ func resourceConnectionKubernetesCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceConnectionKubernetesUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "attributes", "parameters") {
 		validate := validateConnectionKubernetes(d, client)
@@ -368,15 +365,14 @@ func resourceConnectionKubernetesUpdate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceConnectionKubernetesDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
-	err = client.DeleteConnection(d.Id())
+	err := client.DeleteConnection(d.Id())
 
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)

@@ -340,13 +340,12 @@ func guacamoleConnectionVNC() *schema.Resource {
 }
 
 func resourceConnectionVNCRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := readWithClient(m, d)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	identifier := d.Id()
 
@@ -367,13 +366,12 @@ func resourceConnectionVNCRead(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceConnectionVNCCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	validate := validateConnectionVNC(d, client)
 
@@ -387,7 +385,7 @@ func resourceConnectionVNCCreate(ctx context.Context, d *schema.ResourceData, m 
 		return check
 	}
 
-	err = client.CreateConnection(&connection)
+	err := client.CreateConnection(&connection)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -404,13 +402,12 @@ func resourceConnectionVNCCreate(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceConnectionVNCUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "attributes", "parameters") {
 		validate := validateConnectionVNC(d, client)
@@ -445,15 +442,14 @@ func resourceConnectionVNCUpdate(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceConnectionVNCDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := m.(*LazyClient).Get()
-	if err != nil {
-		return diag.FromErr(err)
+	client, diags := writeWithClient(m)
+	if client == nil {
+		return diags
 	}
 
 	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
 
-	err = client.DeleteConnection(d.Id())
+	err := client.DeleteConnection(d.Id())
 
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
