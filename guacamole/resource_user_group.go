@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -80,7 +79,10 @@ func guacamoleUserGroup() *schema.Resource {
 }
 
 func resourceUserGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -190,7 +192,10 @@ Cleanup:
 }
 
 func resourceUserGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -252,7 +257,10 @@ func resourceUserGroupRead(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func resourceUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	if d.HasChanges("username", "attributes") {
 		group, err := convertResourceDataToGuacUserGroup(d)
@@ -417,14 +425,17 @@ func resourceUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func resourceUserGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
 	identifier := d.Id()
 
-	err := client.DeleteUserGroup(identifier)
+	err = client.DeleteUserGroup(identifier)
 	if err != nil {
 		return diag.FromErr(err)
 	}

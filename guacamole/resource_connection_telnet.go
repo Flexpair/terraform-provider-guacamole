@@ -292,7 +292,10 @@ func guacamoleConnectionTelnet() *schema.Resource {
 }
 
 func resourceConnectionTelnetRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -316,7 +319,10 @@ func resourceConnectionTelnetRead(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceConnectionTelnetCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -333,7 +339,7 @@ func resourceConnectionTelnetCreate(ctx context.Context, d *schema.ResourceData,
 		return check
 	}
 
-	err := client.CreateConnection(&connection)
+	err = client.CreateConnection(&connection)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -350,7 +356,10 @@ func resourceConnectionTelnetCreate(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceConnectionTelnetUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -388,12 +397,15 @@ func resourceConnectionTelnetUpdate(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceConnectionTelnetDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	err := client.DeleteConnection(d.Id())
+	err = client.DeleteConnection(d.Id())
 
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)

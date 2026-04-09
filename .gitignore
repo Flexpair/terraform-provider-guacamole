@@ -44,3 +44,4 @@ tests/
 
 # Ignore build
 dist/
+terraform-provider-guacamole

@@ -263,7 +263,10 @@ func guacamoleConnectionKubernetes() *schema.Resource {
 }
 
 func resourceConnectionKubernetesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -287,7 +290,10 @@ func resourceConnectionKubernetesRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceConnectionKubernetesCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -304,7 +310,7 @@ func resourceConnectionKubernetesCreate(ctx context.Context, d *schema.ResourceD
 		return check
 	}
 
-	err := client.CreateConnection(&connection)
+	err = client.CreateConnection(&connection)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -321,7 +327,10 @@ func resourceConnectionKubernetesCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceConnectionKubernetesUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -359,12 +368,15 @@ func resourceConnectionKubernetesUpdate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceConnectionKubernetesDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	err := client.DeleteConnection(d.Id())
+	err = client.DeleteConnection(d.Id())
 
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)

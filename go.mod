@@ -1,6 +1,6 @@
-module github.com/techBeck03/terraform-provider-guacamole
+module github.com/Flexpair/terraform-provider-guacamole
 
-go 1.19
+go 1.22
 
 require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.1

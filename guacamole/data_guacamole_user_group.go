@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	guac "github.com/techBeck03/guacamole-api-client"
 )
 
 func dataSourceUserGroup() *schema.Resource {
@@ -85,7 +84,10 @@ func dataSourceUserGroup() *schema.Resource {
 }
 
 func dataSourceUserGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics

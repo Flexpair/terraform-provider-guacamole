@@ -84,7 +84,10 @@ func guacamoleConnectionGroup() *schema.Resource {
 }
 
 func resourceConnectionGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -101,7 +104,7 @@ func resourceConnectionGroupCreate(ctx context.Context, d *schema.ResourceData, 
 		return check
 	}
 
-	err := client.CreateConnectionGroup(&group)
+	err = client.CreateConnectionGroup(&group)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -118,7 +121,10 @@ func resourceConnectionGroupCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceConnectionGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -142,7 +148,10 @@ func resourceConnectionGroupRead(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceConnectionGroupUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	var diags diag.Diagnostics
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "type", "attributes") {
@@ -178,14 +187,17 @@ func resourceConnectionGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceConnectionGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
 	identifier := d.Id()
 
-	err := client.DeleteConnectionGroup(identifier)
+	err = client.DeleteConnectionGroup(identifier)
 	if err != nil {
 		return diag.FromErr(err)
 	}

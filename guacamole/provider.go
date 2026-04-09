@@ -108,9 +108,6 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		}
 	}
 
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
 	config := guac.Config{
 		URL:                    url,
 		Username:               username,
@@ -122,48 +119,8 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		DisableCookies:         disableCookies,
 	}
 
-	// Check for required provider parameters
-	check := validate(config)
-
-	if check.HasError() {
-		return nil, check
-	}
-
-	client := guac.New(config)
-
-	err := client.Connect()
-
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to create guacamole client",
-			Detail:   err.Error(),
-		})
-
-		return nil, diags
-	}
-
-	return &client, diags
-}
-
-// validate validates the config needed to initialize a guacamole client,
-// returning a single error with all validation errors, or nil if no error.
-func validate(config guac.Config) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	if config.URL == "" {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Missing provider parameter",
-			Detail:   "URL must be configured for the guacamole provider",
-		})
-	}
-	if config.Password == "" && config.Token == "" {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Missing provider parameter",
-			Detail:   "Either username/password or token/data_source must be configured for the guacamole provider",
-		})
-	}
-	return diags
+	// Return a LazyClient that defers authentication until the first API call.
+	// This allows Terraform to plan resources even when the Guacamole server
+	// is not yet available (e.g., during HCP Terraform Stacks planning).
+	return NewLazyClient(config), nil
 }

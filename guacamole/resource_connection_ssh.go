@@ -335,7 +335,10 @@ func guacamoleConnectionSSH() *schema.Resource {
 }
 
 func resourceConnectionSSHRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -359,7 +362,10 @@ func resourceConnectionSSHRead(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceConnectionSSHCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -376,7 +382,7 @@ func resourceConnectionSSHCreate(ctx context.Context, d *schema.ResourceData, m 
 		return check
 	}
 
-	err := client.CreateConnection(&connection)
+	err = client.CreateConnection(&connection)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -393,7 +399,10 @@ func resourceConnectionSSHCreate(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceConnectionSSHUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -431,12 +440,15 @@ func resourceConnectionSSHUpdate(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceConnectionSSHDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	err := client.DeleteConnection(d.Id())
+	err = client.DeleteConnection(d.Id())
 
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)

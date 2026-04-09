@@ -5,7 +5,7 @@ type GuacUser struct {
 	Username   string             `json:"username"`
 	Password   string             `json:"password,omitempty"`
 	Attributes GuacUserAttributes `json:"attributes,omitempty"`
-	LastActive int                `json:"lastActive,omitempty"`
+	LastActive int64              `json:"lastActive,omitempty"`
 }
 
 // GuacUserAttributes additional user attributes

@@ -149,7 +149,10 @@ func guacamoleUser() *schema.Resource {
 
 func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	check := validateUser(d)
 	if check.HasError() {
@@ -259,7 +262,10 @@ Cleanup:
 }
 
 func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -321,7 +327,10 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 }
 
 func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	if d.HasChanges("username", "password", "last_active", "attributes") {
 		check := validateUser(d)
@@ -491,14 +500,17 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func resourceUserDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*guac.Client)
+	client, err := m.(*LazyClient).Get()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
 	userID := d.Id()
 
-	err := client.DeleteUser(userID)
+	err = client.DeleteUser(userID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -538,7 +550,7 @@ func convertResourceDataToGuacUser(d *schema.ResourceData) (types.GuacUser, erro
 func convertGuacUserToResourceData(d *schema.ResourceData, user *types.GuacUser) error {
 	d.Set("username", user.Username)
 	d.Set("password", user.Password)
-	d.Set("last_active", strconv.Itoa(user.LastActive))
+	d.Set("last_active", strconv.FormatInt(user.LastActive, 10))
 
 	attributes := map[string]interface{}{
 		"organizational_role": user.Attributes.GuacOrganizationalRole,
