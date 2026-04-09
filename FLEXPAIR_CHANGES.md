@@ -86,4 +86,22 @@ Three files in `vendor/github.com/techBeck03/guacamole-api-client/` differ from 
 | `types/connections.go` | `xterm-25color` → `xterm-256color` | [#15](https://github.com/techBeck03/terraform-provider-guacamole/issues/15) |
 | `types/users.go` | `LastActive int` → `int64` | [#12](https://github.com/techBeck03/terraform-provider-guacamole/issues/12) |
 
-These are vendored patches — no changes were pushed to the upstream `guacamole-api-client` repo.
+These same three fixes also exist as a dedicated commit in the **Flexpair fork of the API client library** — see below.
+
+---
+
+## Flexpair/guacamole-api-client Fork
+
+Upstream: `github.com/techBeck03/guacamole-api-client`
+Fork: `github.com/Flexpair/guacamole-api-client`
+
+The provider's `vendor/` directory contains patched copies of the API client. The same fixes were also committed directly to the Flexpair fork of the library repo so they can be referenced independently.
+
+### `7e39779` — fix: LastActive int64, xterm-256color typo, ioutil deprecation
+
+| File | Change | Upstream Issue |
+|------|--------|----------------|
+| `client.go` | `ioutil.ReadAll` → `io.ReadAll` | Deprecated since Go 1.16 |
+| `types/connections.go` | `xterm-25color` → `xterm-256color` | [#15](https://github.com/techBeck03/terraform-provider-guacamole/issues/15) |
+| `types/users.go` | `LastActive int` → `int64` | [#12](https://github.com/techBeck03/terraform-provider-guacamole/issues/12) |
+| `go.mod` | Bumped Go to 1.22 |
