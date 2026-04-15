@@ -1,0 +1,35 @@
+name: Dependabot auto-vendor
+
+on: pull_request
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Update vendor directory
+        run: |
+          go mod tidy
+          go mod vendor
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add go.sum vendor/
+            git commit -m "chore: update vendor directory"
+            git push
+          fi
