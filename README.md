@@ -1,6 +1,6 @@
 # terraform-provider-guacamole
 
-Flexpair fork of [techBeck03/terraform-provider-guacamole](https://github.com/techBeck03/terraform-provider-guacamole) — a Terraform provider for Apache Guacamole.
+Flexpair fork of [techBeck03/terraform-provider-guacamole](https://github.com/techBeck03/terraform-provider-guacamole) — a [Terraform](https://en.wikipedia.org/wiki/Terraform_(software)) provider for [Apache Guacamole](https://en.wikipedia.org/wiki/Apache_Guacamole).
 
 Upstream: `github.com/techBeck03/terraform-provider-guacamole`
 Fork: `github.com/Flexpair/terraform-provider-guacamole`
