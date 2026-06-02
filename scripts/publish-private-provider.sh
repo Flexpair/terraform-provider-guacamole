@@ -126,7 +126,7 @@ while read -r sha filename; do
     *_SHA256SUMS|*.sig) continue ;;
   esac
 
-  # filename: terraform-provider-guacamole_2.3.1_<os>_<arch>.zip
+  # filename: terraform-provider-guacamole_<version>_<os>_<arch>.zip
   rest="${filename#"${NAME}"_"${VERSION}"_}"   # -> <os>_<arch>.zip
   rest="${rest%.zip}"                          # -> <os>_<arch>
   os="${rest%%_*}"
