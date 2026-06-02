@@ -16,9 +16,9 @@ import (
 // is not yet available (e.g., during HCP Terraform Stacks planning phase
 // where the gateway VM has not been created yet).
 //
-// On first Get() call, it retries the connection with exponential backoff
-// (up to ~10 minutes total) to handle the case where the gateway VM has
-// just been launched and Docker/Guacamole is still starting up.
+// On first Get() call, it polls the connection every 15 seconds for up to
+// roughly 30 minutes to handle the case where the gateway VM has just been
+// launched and Docker/Guacamole is still starting up.
 //
 // When the provider URL is empty (common during Stacks multi-wave planning),
 // the client operates in "unconfigured" mode: Get() returns nil without error,
@@ -28,11 +28,35 @@ type LazyClient struct {
 	client *guac.Client
 	mu     sync.Mutex
 	err    error
+
+	connect       func(guac.Config) (*guac.Client, error)
+	sleep         func(time.Duration)
+	retryInterval time.Duration
+	maxAttempts   int
 }
+
+const (
+	defaultRetryInterval = 15 * time.Second
+	defaultMaxAttempts   = 120
+)
 
 // NewLazyClient stores the provider configuration without connecting.
 func NewLazyClient(config guac.Config) *LazyClient {
-	return &LazyClient{config: config}
+	return &LazyClient{
+		config:        config,
+		connect:       connectGuacamole,
+		sleep:         time.Sleep,
+		retryInterval: defaultRetryInterval,
+		maxAttempts:   defaultMaxAttempts,
+	}
+}
+
+func connectGuacamole(config guac.Config) (*guac.Client, error) {
+	client := guac.New(config)
+	if err := client.Connect(); err != nil {
+		return nil, err
+	}
+	return &client, nil
 }
 
 // IsConfigured reports whether the provider has a non-empty server URL.
@@ -73,7 +97,7 @@ func writeWithClient(m interface{}) (*guac.Client, diag.Diagnostics) {
 }
 
 // Get returns an authenticated Guacamole client, connecting on first call.
-// Retries with exponential backoff if the server is not yet reachable.
+// Polls at a fixed interval if the server is not yet reachable.
 // Subsequent calls return the cached client. Thread-safe.
 func (lc *LazyClient) Get() (*guac.Client, error) {
 	lc.mu.Lock()
@@ -86,33 +110,38 @@ func (lc *LazyClient) Get() (*guac.Client, error) {
 		return nil, lc.err
 	}
 
-	// Retry with exponential backoff: 15s, 30s, 60s, 60s, 60s, 60s, 60s, 60s, 60s, 60s
-	// Total wait: ~9 minutes, giving the gateway VM time to boot
-	backoff := 15 * time.Second
-	maxBackoff := 60 * time.Second
-	maxAttempts := 10
+	connect := lc.connect
+	if connect == nil {
+		connect = connectGuacamole
+	}
+	sleep := lc.sleep
+	if sleep == nil {
+		sleep = time.Sleep
+	}
+	retryInterval := lc.retryInterval
+	if retryInterval < 0 {
+		retryInterval = 0
+	}
+	maxAttempts := lc.maxAttempts
+	if maxAttempts < 1 {
+		maxAttempts = 1
+	}
 
 	var lastErr error
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		client := guac.New(lc.config)
-		if err := client.Connect(); err != nil {
+		client, err := connect(lc.config)
+		if err != nil {
 			lastErr = err
 			if attempt < maxAttempts {
-				log.Printf("[INFO] Guacamole connection attempt %d/%d failed: %v. Retrying in %s...", attempt, maxAttempts, err, backoff)
-				time.Sleep(backoff)
-				if backoff < maxBackoff {
-					backoff *= 2
-					if backoff > maxBackoff {
-						backoff = maxBackoff
-					}
-				}
+				log.Printf("[INFO] Guacamole connection attempt %d/%d failed: %v. Retrying in %s...", attempt, maxAttempts, err, retryInterval)
+				sleep(retryInterval)
 				continue
 			}
 		} else {
 			if attempt > 1 {
 				log.Printf("[INFO] Guacamole connection succeeded on attempt %d/%d", attempt, maxAttempts)
 			}
-			lc.client = &client
+			lc.client = client
 			return lc.client, nil
 		}
 	}

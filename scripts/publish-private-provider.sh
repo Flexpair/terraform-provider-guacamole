@@ -25,7 +25,7 @@
 # Optional environment variables (defaults shown):
 #   ORG=Flexpair
 #   PROVIDER=guacamole
-#   VERSION=2.3.1
+#   VERSION=2.3.2
 #   DIST_DIR=dist
 #   PROTOCOLS=5.0          (comma-separated, e.g. "5.0,6.0")
 #   TFE_HOST=app.terraform.io
@@ -39,7 +39,7 @@ set -euo pipefail
 
 ORG="${ORG:-Flexpair}"
 PROVIDER="${PROVIDER:-guacamole}"
-VERSION="${VERSION:-2.3.1}"
+VERSION="${VERSION:-2.3.2}"
 DIST_DIR="${DIST_DIR:-dist}"
 PROTOCOLS="${PROTOCOLS:-5.0}"
 TFE_HOST="${TFE_HOST:-app.terraform.io}"

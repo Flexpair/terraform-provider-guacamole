@@ -11,13 +11,14 @@ Flexpair uses HCP Terraform Stacks to orchestrate a multi-component deployment. 
 
 The fork introduces lazy initialization to solve this, plus several bug fixes discovered during the Stacks migration.
 
-## Published Versions
+## Flexpair Version History
 
 | Version | Key Changes |
 |---------|-------------|
 | v2.1.0 | Lazy init + retry + upstream fixes |
 | v2.2.0 | Password state preservation (fixes perpetual plan drift) |
 | v2.3.0 | Empty URL handling for Stacks (fixes multi-wave plan failures) |
+| v2.3.2 | Longer 15-second Guacamole connection polling window (~30 minutes) |
 
 ## Commits (oldest → newest)
 
@@ -75,6 +76,15 @@ The fork introduces lazy initialization to solve this, plus several bug fixes di
 - **All 16 resource/data source files** (40 CRUD functions total):
   - Read functions: use `readWithClient(m, d)` — plan shows "create" instead of erroring.
   - Create/Update/Delete: use `writeWithClient(m)` — returns clear error if URL is still empty at apply time.
+
+---
+
+### 5. Current — extend Guacamole readiness polling
+
+**Problem:** Fresh gateway rebuilds can take longer than the previous ~9-minute connection retry window before Docker, Nginx, and Guacamole are ready to accept `/api/tokens` requests.
+
+**Changes:**
+- **`guacamole/lazy_client.go`**: `Get()` now polls every 15 seconds for up to 120 attempts (~30 minutes total). This keeps retry behavior inside the provider instead of adding fixed waits to Terraform components.
 
 ## Vendored Library Changes
 
