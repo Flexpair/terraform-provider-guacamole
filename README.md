@@ -98,7 +98,7 @@ The fork introduces lazy initialization to solve this, plus several bug fixes di
 - **Read functions** (`resource_connection_vnc.go`, `resource_connection_ssh.go`, `resource_connection_rdp.go`, `resource_connection_telnet.go`, `resource_connection_kubernetes.go`, `resource_connection_group.go`, `resource_user.go`, `resource_user_group.go`): on a not-found error, call `d.SetId("")` and return without error so Terraform plans a recreate instead of failing.
 - **Delete functions** (same resources): treat a not-found error as success (already deleted) for idempotency.
 
-This pairs with `flexpair-infra` coupling every Guacamole resource in `early-orbit` to the gateway identity via `replace_triggered_by`, so a gateway swap forces a clean destroy-then-create that the idempotent provider can complete.
+This pairs with `flexpair-infra` coupling every Guacamole resource in `early-orbit` to the gateway identity via `replace_triggered_by`, so a gateway swap forces a clean destroy-then-create that the idempotent provider can complete. Note: any new `guacamole_*` resource added to `early-orbit` must also carry `replace_triggered_by = [terraform_data.gateway_anchor]`; the idempotent provider keeps the swap recoverable, but the clean recreate still depends on that coupling.
 
 ## Vendored Library Changes
 
