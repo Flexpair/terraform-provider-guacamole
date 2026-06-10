@@ -132,6 +132,13 @@ func resourceConnectionGroupRead(ctx context.Context, d *schema.ResourceData, m 
 	group, err := client.ReadConnectionGroup(identifier)
 
 	if err != nil {
+		if isNotFoundError(err) {
+			// The connection group no longer exists on the server (e.g. the
+			// gateway VM was replaced). Clear the ID so Terraform plans a
+			// recreate instead of failing the apply.
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
@@ -194,7 +201,7 @@ func resourceConnectionGroupDelete(ctx context.Context, d *schema.ResourceData, 
 	identifier := d.Id()
 
 	err := client.DeleteConnectionGroup(identifier)
-	if err != nil {
+	if err != nil && !isNotFoundError(err) {
 		return diag.FromErr(err)
 	}
 

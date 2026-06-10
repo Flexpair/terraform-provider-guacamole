@@ -3,6 +3,7 @@ package guacamole
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -62,6 +63,23 @@ func connectGuacamole(config guac.Config) (*guac.Client, error) {
 // IsConfigured reports whether the provider has a non-empty server URL.
 func (lc *LazyClient) IsConfigured() bool {
 	return lc.config.URL != ""
+}
+
+// isNotFoundError reports whether err originates from a Guacamole REST call
+// that returned HTTP 404 (resource missing on the server). The vendored API
+// client does not expose typed errors, so the HTTP status is matched from the
+// error message, whose format ("failed with status code 404") is produced by
+// the client's Call method and is stable across versions.
+//
+// This lets Read functions treat a missing resource as "recreate" instead of a
+// hard error, and Delete functions treat it as already-deleted. Both are
+// required when the gateway VM (and therefore the Guacamole database) has been
+// replaced, leaving stale numeric IDs in Terraform state.
+func isNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "status code 404")
 }
 
 // readWithClient returns an authenticated client for Read operations.

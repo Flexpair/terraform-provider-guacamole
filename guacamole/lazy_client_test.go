@@ -100,3 +100,28 @@ func TestLazyClientGetCachesFinalError(t *testing.T) {
 		t.Fatalf("second Get() attempted reconnect; attempts = %d, want 3", attempts)
 	}
 }
+
+func TestIsNotFoundError(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "nil error", err: nil, want: false},
+		{
+			name: "404 from client Call",
+			err:  errors.New("request &{...}\n failed with status code 404\n response map[]\n"),
+			want: true,
+		},
+		{name: "other status code", err: errors.New("failed with status code 500"), want: false},
+		{name: "unrelated error", err: errors.New("connection refused"), want: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := isNotFoundError(tc.err); got != tc.want {
+				t.Fatalf("isNotFoundError(%v) = %t, want %t", tc.err, got, tc.want)
+			}
+		})
+	}
+}

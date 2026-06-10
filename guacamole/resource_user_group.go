@@ -72,9 +72,9 @@ func guacamoleUserGroup() *schema.Resource {
 				},
 			},
 		},
-                Importer: &schema.ResourceImporter{
-                        StateContext: schema.ImportStatePassthroughContext,
-                },
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 	}
 }
 
@@ -202,6 +202,13 @@ func resourceUserGroupRead(ctx context.Context, d *schema.ResourceData, m interf
 	group, err := client.ReadUserGroup(identifier)
 
 	if err != nil {
+		if isNotFoundError(err) {
+			// The user group no longer exists on the server (e.g. the gateway
+			// VM was replaced). Clear the ID so Terraform plans a recreate
+			// instead of failing the apply.
+			d.SetId("")
+			return diags
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  fmt.Sprintf("Error reading guacamole user: %s", identifier),
@@ -433,7 +440,7 @@ func resourceUserGroupDelete(ctx context.Context, d *schema.ResourceData, m inte
 	identifier := d.Id()
 
 	err := client.DeleteUserGroup(identifier)
-	if err != nil {
+	if err != nil && !isNotFoundError(err) {
 		return diag.FromErr(err)
 	}
 

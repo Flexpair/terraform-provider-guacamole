@@ -141,9 +141,9 @@ func guacamoleUser() *schema.Resource {
 				},
 			},
 		},
-                Importer: &schema.ResourceImporter{
-                        StateContext: schema.ImportStatePassthroughContext,
-                },
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 	}
 }
 
@@ -272,6 +272,13 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 	user, err := client.ReadUser(userID)
 
 	if err != nil {
+		if isNotFoundError(err) {
+			// The user no longer exists on the server (e.g. the gateway VM was
+			// replaced). Clear the ID so Terraform plans a recreate instead of
+			// failing the apply.
+			d.SetId("")
+			return diags
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  fmt.Sprintf("Error reading guacamole user: %s", userID),
@@ -508,7 +515,7 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, m interface
 	userID := d.Id()
 
 	err := client.DeleteUser(userID)
-	if err != nil {
+	if err != nil && !isNotFoundError(err) {
 		return diag.FromErr(err)
 	}
 

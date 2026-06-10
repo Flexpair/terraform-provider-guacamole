@@ -19,6 +19,7 @@ The fork introduces lazy initialization to solve this, plus several bug fixes di
 | v2.2.0 | Password state preservation (fixes perpetual plan drift) |
 | v2.3.0 | Empty URL handling for Stacks (fixes multi-wave plan failures) |
 | v2.3.2 | Longer 15-second Guacamole connection polling window (~30 minutes) |
+| v2.4.0 | Idempotent CRUD: missing resources recreate instead of erroring (fixes gateway-replacement applies) |
 
 ## Commits (oldest → newest)
 
@@ -79,12 +80,25 @@ The fork introduces lazy initialization to solve this, plus several bug fixes di
 
 ---
 
-### 5. Current — extend Guacamole readiness polling
+### 5. `a9b2371` (tag `v2.3.2`) — extend Guacamole readiness polling
 
 **Problem:** Fresh gateway rebuilds can take longer than the previous ~9-minute connection retry window before Docker, Nginx, and Guacamole are ready to accept `/api/tokens` requests.
 
 **Changes:**
 - **`guacamole/lazy_client.go`**: `Get()` now polls every 15 seconds for up to 120 attempts (~30 minutes total). This keeps retry behavior inside the provider instead of adding fixed waits to Terraform components.
+
+---
+
+### 6. Current (tag `v2.4.0`) — idempotent CRUD on missing resources
+
+**Problem:** When the gateway VM is replaced, it comes up with a fresh, empty Guacamole database while Terraform state still holds the old numeric resource IDs. On the next apply the provider's `Read` hit HTTP 404 and returned a hard error (`diag.FromErr`), and `Delete` against a vanished resource also failed — so a gateway replacement broke the `early_orbit` apply instead of cleanly recreating connections and users.
+
+**Changes:**
+- **`guacamole/lazy_client.go`**: Added `isNotFoundError(err)` — the vendored API client exposes no typed errors, so an HTTP 404 is detected from the stable `status code 404` substring in the error message.
+- **Read functions** (`resource_connection_vnc.go`, `resource_connection_ssh.go`, `resource_connection_rdp.go`, `resource_connection_telnet.go`, `resource_connection_kubernetes.go`, `resource_connection_group.go`, `resource_user.go`, `resource_user_group.go`): on a not-found error, call `d.SetId("")` and return without error so Terraform plans a recreate instead of failing.
+- **Delete functions** (same resources): treat a not-found error as success (already deleted) for idempotency.
+
+This pairs with `flexpair-infra` coupling every Guacamole resource in `early-orbit` to the gateway identity via `replace_triggered_by`, so a gateway swap forces a clean destroy-then-create that the idempotent provider can complete.
 
 ## Vendored Library Changes
 

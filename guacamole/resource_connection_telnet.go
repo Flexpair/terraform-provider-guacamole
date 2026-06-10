@@ -285,9 +285,9 @@ func guacamoleConnectionTelnet() *schema.Resource {
 				},
 			},
 		},
-                Importer: &schema.ResourceImporter{
-                        StateContext: schema.ImportStatePassthroughContext,
-                },
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 	}
 }
 
@@ -304,6 +304,13 @@ func resourceConnectionTelnetRead(ctx context.Context, d *schema.ResourceData, m
 	connection, err := client.ReadConnection(identifier)
 
 	if err != nil {
+		if isNotFoundError(err) {
+			// The connection no longer exists on the server (e.g. the gateway
+			// VM was replaced). Clear the ID so Terraform plans a recreate
+			// instead of failing the apply.
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
@@ -403,7 +410,7 @@ func resourceConnectionTelnetDelete(ctx context.Context, d *schema.ResourceData,
 
 	err := client.DeleteConnection(d.Id())
 
-	if err != nil {
+	if err != nil && !isNotFoundError(err) {
 		diags = append(diags, diag.FromErr(err)...)
 	}
 
