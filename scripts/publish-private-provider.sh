@@ -55,15 +55,15 @@ command -v curl >/dev/null || die "curl is required"
 command -v jq   >/dev/null || die "jq is required"
 command -v shasum >/dev/null || die "shasum is required"
 
-[ -n "${TOKEN:-}" ]  || die "TOKEN is not set (export it in your shell, do not paste it into chat)"
-[ -n "${KEY_ID:-}" ] || die "KEY_ID is not set (discover via /api/registry/private/v2/gpg-keys)"
+[[ -n "${TOKEN:-}" ]]  || die "TOKEN is not set (export it in your shell, do not paste it into chat)"
+[[ -n "${KEY_ID:-}" ]] || die "KEY_ID is not set (discover via /api/registry/private/v2/gpg-keys)"
 
 AUTH="Authorization: Bearer ${TOKEN}"
 
 SUMS="${DIST_DIR}/${NAME}_${VERSION}_SHA256SUMS"
 SIG="${SUMS}.sig"
-[ -f "${SUMS}" ] || die "missing ${SUMS}"
-[ -f "${SIG}" ]  || die "missing ${SIG}"
+[[ -f "${SUMS}" ]] || die "missing ${SUMS}"
+[[ -f "${SIG}" ]]  || die "missing ${SIG}"
 
 # Build the protocols JSON array from the comma-separated PROTOCOLS value.
 PROTO_JSON=$(printf '%s' "${PROTOCOLS}" | jq -R 'split(",")')
@@ -97,18 +97,18 @@ shasums_sig_upload_url=$(echo "${ver_resp}" | jq -r '.data.links."shasums-sig-up
 # Step 2: upload SHA256SUMS and SHA256SUMS.sig if not already uploaded.
 # ---------------------------------------------------------------------------
 echo ">>> [2/4] Uploading shasums + signature"
-if [ "${shasums_uploaded}" = "true" ]; then
+if [[ "${shasums_uploaded}" = "true" ]]; then
   echo "    SHA256SUMS already uploaded"
-elif [ -n "${shasums_upload_url}" ]; then
+elif [[ -n "${shasums_upload_url}" ]]; then
   curl -sS -T "${SUMS}" "${shasums_upload_url}"
   echo "    uploaded ${SUMS}"
 else
   die "no shasums-upload URL and shasums not uploaded; response: ${ver_resp}"
 fi
 
-if [ "${shasums_sig_uploaded}" = "true" ]; then
+if [[ "${shasums_sig_uploaded}" = "true" ]]; then
   echo "    SHA256SUMS.sig already uploaded"
-elif [ -n "${shasums_sig_upload_url}" ]; then
+elif [[ -n "${shasums_sig_upload_url}" ]]; then
   curl -sS -T "${SIG}" "${shasums_sig_upload_url}"
   echo "    uploaded ${SIG}"
 else
@@ -121,10 +121,10 @@ fi
 echo ">>> [3/4] Publishing platforms"
 # Parse SHA256SUMS: each line is "<sha>  <filename>".
 while read -r sha filename; do
-  [ -n "${sha}" ] || continue
-  case "${filename}" in
-    *_SHA256SUMS|*.sig) continue ;;
-  esac
+  [[ -n "${sha}" ]] || continue
+  if [[ "${filename}" == *_SHA256SUMS || "${filename}" == *.sig ]]; then
+    continue
+  fi
 
   # filename: terraform-provider-guacamole_<version>_<os>_<arch>.zip
   rest="${filename#"${NAME}"_"${VERSION}"_}"   # -> <os>_<arch>.zip
@@ -132,7 +132,7 @@ while read -r sha filename; do
   os="${rest%%_*}"
   arch="${rest#*_}"
   zip="${DIST_DIR}/${filename}"
-  [ -f "${zip}" ] || die "missing platform artifact ${zip}"
+  [[ -f "${zip}" ]] || die "missing platform artifact ${zip}"
 
   echo "    -> ${os}/${arch} (${filename})"
 
@@ -154,7 +154,7 @@ while read -r sha filename; do
     bin_url=$(echo "${plat_resp}" | jq -r '.data.links."provider-binary-upload" // empty')
   fi
 
-  [ -n "${bin_url}" ] || die "no provider-binary-upload URL for ${os}/${arch}: ${plat_resp}"
+  [[ -n "${bin_url}" ]] || die "no provider-binary-upload URL for ${os}/${arch}: ${plat_resp}"
   curl -sS -T "${zip}" "${bin_url}"
   echo "       uploaded ${zip}"
 done < "${SUMS}"
