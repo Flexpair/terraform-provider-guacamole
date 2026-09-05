@@ -101,6 +101,25 @@ func TestLazyClientGetCachesFinalError(t *testing.T) {
 	}
 }
 
+func TestLazyClientRetryPolicyNormalizesInvalidValues(t *testing.T) {
+	lazyClient := NewLazyClient(guac.Config{URL: "https://example.test/guacamole"})
+	lazyClient.connect = nil
+	lazyClient.sleep = nil
+	lazyClient.retryInterval = -time.Second
+	lazyClient.maxAttempts = 0
+
+	_, sleep, interval, attempts := lazyClient.retryPolicy()
+	if sleep == nil {
+		t.Fatal("retryPolicy() returned nil sleep function")
+	}
+	if interval != 0 {
+		t.Fatalf("retry interval = %s, want 0", interval)
+	}
+	if attempts != 1 {
+		t.Fatalf("max attempts = %d, want 1", attempts)
+	}
+}
+
 func TestIsNotFoundError(t *testing.T) {
 	cases := []struct {
 		name string

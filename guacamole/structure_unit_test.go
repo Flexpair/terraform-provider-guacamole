@@ -92,6 +92,12 @@ func TestHCLConversion(t *testing.T) {
 }
 
 func TestGenericConversions(t *testing.T) {
+	if _, ok := tryToConvertToGenericSlice(nil); ok {
+		t.Fatal("nil converted to generic slice")
+	}
+	if _, ok := tryToConvertToGenericMap(nil); ok {
+		t.Fatal("nil converted to generic map")
+	}
 	if got, ok := tryToConvertToGenericSlice([]string{"ssh"}); !ok || !reflect.DeepEqual(got, []interface{}{"ssh"}) {
 		t.Fatalf("slice conversion = %#v, %t", got, ok)
 	}

@@ -9,18 +9,20 @@ import (
 	"github.com/techBeck03/guacamole-api-client/types"
 )
 
+const connectionGroupIdentifierDescription = "Identifier of guacamole connection group"
+
 func dataSourceConnectionGroup() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceConnectionGroupRead,
 		Schema: map[string]*schema.Schema{
 			"identifier": {
 				Type:        schema.TypeString,
-				Description: "Identifier of guacamole connection group",
+				Description: connectionGroupIdentifierDescription,
 				Optional:    true,
 			},
 			"path": {
 				Type:        schema.TypeString,
-				Description: "Identifier of guacamole connection group",
+				Description: connectionGroupIdentifierDescription,
 				Optional:    true,
 			},
 			"parent_identifier": {
@@ -30,17 +32,17 @@ func dataSourceConnectionGroup() *schema.Resource {
 			},
 			"name": {
 				Type:        schema.TypeString,
-				Description: "Identifier of guacamole connection group",
+				Description: connectionGroupIdentifierDescription,
 				Computed:    true,
 			},
 			"type": {
 				Type:        schema.TypeString,
-				Description: "Identifier of guacamole connection group",
+				Description: connectionGroupIdentifierDescription,
 				Computed:    true,
 			},
 			"active_connections": {
 				Type:        schema.TypeInt,
-				Description: "Identifier of guacamole connection group",
+				Description: connectionGroupIdentifierDescription,
 				Computed:    true,
 			},
 			"attributes": {
@@ -75,7 +77,7 @@ func dataSourceConnectionGroup() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"identifier": {
 							Type:        schema.TypeString,
-							Description: "Identifier of guacamole connection group",
+							Description: connectionGroupIdentifierDescription,
 							Optional:    true,
 						},
 						"parent_identifier": {
@@ -85,17 +87,17 @@ func dataSourceConnectionGroup() *schema.Resource {
 						},
 						"name": {
 							Type:        schema.TypeString,
-							Description: "Identifier of guacamole connection group",
+							Description: connectionGroupIdentifierDescription,
 							Computed:    true,
 						},
 						"type": {
 							Type:        schema.TypeString,
-							Description: "Identifier of guacamole connection group",
+							Description: connectionGroupIdentifierDescription,
 							Computed:    true,
 						},
 						"active_connections": {
 							Type:        schema.TypeInt,
-							Description: "Identifier of guacamole connection group",
+							Description: connectionGroupIdentifierDescription,
 							Computed:    true,
 						},
 					},
@@ -119,7 +121,7 @@ func dataSourceConnectionGroup() *schema.Resource {
 						},
 						"name": {
 							Type:        schema.TypeString,
-							Description: "Identifier of guacamole connection group",
+							Description: connectionGroupIdentifierDescription,
 							Computed:    true,
 						},
 						"protocol": {
@@ -129,7 +131,7 @@ func dataSourceConnectionGroup() *schema.Resource {
 						},
 						"active_connections": {
 							Type:        schema.TypeInt,
-							Description: "Identifier of guacamole connection group",
+							Description: connectionGroupIdentifierDescription,
 							Computed:    true,
 						},
 					},

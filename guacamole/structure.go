@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -29,6 +30,62 @@ func boolToString(b bool) string {
 		return "true"
 	}
 	return ""
+}
+
+func validateStringFields(values []interface{}, integerKeys []string, restrictedFields map[string][]string, fieldKind string) diag.Diagnostics {
+	if len(values) == 0 {
+		return nil
+	}
+
+	fields := values[0].(map[string]interface{})
+	diags := validateStringIntegers(fields, integerKeys, fieldKind)
+	return append(diags, validateRestrictedStrings(fields, restrictedFields)...)
+}
+
+func validateStringIntegers(fields map[string]interface{}, keys []string, fieldKind string) diag.Diagnostics {
+	var diags diag.Diagnostics
+	for _, key := range keys {
+		value := fields[key].(string)
+		if value == "" {
+			continue
+		}
+		if _, err := strconv.Atoi(value); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Invalid entry",
+				Detail:   fmt.Sprintf("Expected string integer for %s key: %s but was unable to convert: %s to integer", fieldKind, key, value),
+			})
+		}
+	}
+	return diags
+}
+
+func validateRestrictedStrings(fields map[string]interface{}, restrictedFields map[string][]string) diag.Diagnostics {
+	var diags diag.Diagnostics
+	for key, validValues := range restrictedFields {
+		value := fields[key].(string)
+		if value != "" {
+			diags = append(diags, stringInSlice(validValues, []string{value})...)
+		}
+	}
+	return diags
+}
+
+func validateTimezone(values []interface{}, key string) diag.Diagnostics {
+	if len(values) == 0 {
+		return nil
+	}
+
+	timezone := values[0].(map[string]interface{})[key].(string)
+	if _, err := time.LoadLocation(timezone); err == nil {
+		return nil
+	}
+
+	return diag.Diagnostics{{
+		Severity: diag.Error,
+		Summary:  "Invalid timezone",
+		Detail:   fmt.Sprintf("Unable to process timezone string: %s", timezone),
+	}}
 }
 
 func sliceDiff(slice1 []string, slice2 []string, bidirectional bool) []string {
@@ -162,7 +219,7 @@ func toHclString(value interface{}, isNested bool) string {
 // have generics, nor useful utility methods built-in. For more info, see: http://stackoverflow.com/a/12754757/483528
 func tryToConvertToGenericSlice(value interface{}) ([]interface{}, bool) {
 	reflectValue := reflect.ValueOf(value)
-	if reflectValue.Kind() != reflect.Slice {
+	if value == nil || reflectValue.Kind() != reflect.Slice {
 		return []interface{}{}, false
 	}
 
@@ -180,7 +237,7 @@ func tryToConvertToGenericSlice(value interface{}) ([]interface{}, bool) {
 // have generics, nor useful utility methods built-in. For more info, see: http://stackoverflow.com/a/12754757/483528
 func tryToConvertToGenericMap(value interface{}) (map[string]interface{}, bool) {
 	reflectValue := reflect.ValueOf(value)
-	if reflectValue.Kind() != reflect.Map {
+	if value == nil || reflectValue.Kind() != reflect.Map {
 		return map[string]interface{}{}, false
 	}
 
