@@ -2,9 +2,6 @@ package guacamole
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -806,55 +803,26 @@ func convertGuacConnectionRDPToResourceData(d *schema.ResourceData, connection *
 	return diags
 }
 
-func validateConnectionRDP(d *schema.ResourceData, client *guac.Client) diag.Diagnostics {
+func validateConnectionRDP(d *schema.ResourceData, _ *guac.Client) diag.Diagnostics {
 	var diags diag.Diagnostics
-
-	// validate attributes
-	attributeList := d.Get("attributes").([]interface{})
-
-	stringIntAttributes := []string{
-		"guacd_port",
-		"weight",
-		"max_connections",
-		"max_connections_per_user",
-	}
-
+	var parameterInterface types.GuacConnectionParameters
 	var attributeInterface types.GuacConnectionAttributes
 	restrictedValueAttributes := map[string][]string{
 		"guacd_encryption": attributeInterface.ValidEncryptionTypes(),
 	}
-
+	attributeList := d.Get("attributes").([]interface{})
 	if len(attributeList) > 0 {
-		attributes := attributeList[0].(map[string]interface{})
-		// validate string integer values
-		for _, v := range stringIntAttributes {
-			if attributes[v].(string) != "" {
-				_, err := strconv.Atoi(attributes[v].(string))
-				if err != nil {
-					diags = append(diags, diag.Diagnostic{
-						Severity: diag.Error,
-						Summary:  "Invalid entry",
-						Detail:   fmt.Sprintf("Expected string integer for attribute key: %s but was unable to convert: %s to integer", v, attributes[v].(string)),
-					})
-				}
-			}
-		}
-
-		// validate restricted value fields
-		for k, v := range restrictedValueAttributes {
-			if attributes[k].(string) != "" {
-				check := stringInSlice(v, []string{attributes[k].(string)})
-				if check.HasError() {
-					diags = append(diags, check...)
-				}
-			}
-		}
+		diags = append(diags, validateStringFields(attributeList, []string{
+			"guacd_port", "weight", "max_connections", "max_connections_per_user",
+		}, restrictedValueAttributes, "attribute")...)
 	}
 
-	// validate parameters
 	parameterList := d.Get("parameters").([]interface{})
-
-	stringIntparameters := []string{
+	if len(parameterList) == 0 {
+		return diags
+	}
+	parameters := parameterList[0].(map[string]interface{})
+	parameterDiagnostics := validateStringFields([]interface{}{parameters}, []string{
 		"port",
 		"gateway_port",
 		"width",
@@ -864,55 +832,14 @@ func validateConnectionRDP(d *schema.ResourceData, client *guac.Client) diag.Dia
 		"sftp_port",
 		"sftp_keepalive_interval",
 		"wol_boot_wait_time",
-	}
-
-	var parameterInterface types.GuacConnectionParameters
-	restrictedValueParameters := map[string][]string{
+	}, map[string][]string{
 		"security_mode":   parameterInterface.ValidSecurityModes(),
 		"keyboard_layout": parameterInterface.ValidKeyboardLayouts(),
 		"color_depth":     parameterInterface.ValidColorDepths(),
 		"resize_method":   parameterInterface.ValidResizeMethods(),
-	}
-
-	if len(parameterList) > 0 {
-		parameters := parameterList[0].(map[string]interface{})
-		// validate string integer values
-		for _, v := range stringIntparameters {
-			if parameters[v].(string) != "" {
-				_, err := strconv.Atoi(parameters[v].(string))
-				if err != nil {
-					diags = append(diags, diag.Diagnostic{
-						Severity: diag.Error,
-						Summary:  "Invalid entry",
-						Detail:   fmt.Sprintf("Expected string integer for parameter key: %s but was unable to convert: %s to integer", v, parameters[v].(string)),
-					})
-				}
-			}
-		}
-
-		// validate restricted value fields
-		for k, v := range restrictedValueParameters {
-			if parameters[k].(string) != "" {
-				check := stringInSlice(v, []string{parameters[k].(string)})
-				if check.HasError() {
-					diags = append(diags, check...)
-				}
-			}
-		}
-
-		// validate timezone
-		timezone := parameters["timezone"].(string)
-		_, err := time.LoadLocation(timezone)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Invalid timezone",
-				Detail:   fmt.Sprintf("Unable to process timezone string: %s", timezone),
-			})
-		}
-	}
-
-	return diags
+	}, "parameter")
+	diags = append(diags, parameterDiagnostics...)
+	return append(diags, validateTimezone(parameterList, "timezone")...)
 }
 
 func convertResourceDataToGuacConnectionRDP(d *schema.ResourceData) (types.GuacConnection, diag.Diagnostics) {
