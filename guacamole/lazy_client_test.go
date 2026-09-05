@@ -108,7 +108,10 @@ func TestLazyClientRetryPolicyNormalizesInvalidValues(t *testing.T) {
 	lazyClient.retryInterval = -time.Second
 	lazyClient.maxAttempts = 0
 
-	_, sleep, interval, attempts := lazyClient.retryPolicy()
+	connect, sleep, interval, attempts := lazyClient.retryPolicy()
+	if connect == nil {
+		t.Fatal("retryPolicy() returned nil connect function")
+	}
 	if sleep == nil {
 		t.Fatal("retryPolicy() returned nil sleep function")
 	}
