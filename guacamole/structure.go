@@ -38,6 +38,10 @@ func validateStringFields(values []interface{}, integerKeys []string, restricted
 	}
 
 	fields := values[0].(map[string]interface{})
+	return validateStringFieldMap(fields, integerKeys, restrictedFields, fieldKind)
+}
+
+func validateStringFieldMap(fields map[string]interface{}, integerKeys []string, restrictedFields map[string][]string, fieldKind string) diag.Diagnostics {
 	diags := validateStringIntegers(fields, integerKeys, fieldKind)
 	return append(diags, validateRestrictedStrings(fields, restrictedFields)...)
 }
@@ -123,7 +127,7 @@ func sliceDiff(slice1 []string, slice2 []string, bidirectional bool) []string {
 	return diff
 }
 
-func stringInSlice(valid []string, test []string) diag.Diagnostics {
+func stringInSlice(valid, test []string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	for _, t := range test {
@@ -174,7 +178,7 @@ func checkForDuplicates(slice1 []string) diag.Diagnostics {
 }
 
 // sorts slice 2 by slice 1
-func sortSliceBySlice(slice1 []string, slice2 []string) []string {
+func sortSliceBySlice(slice1, slice2 []string) []string {
 	var sorted []string
 	for _, v1 := range slice1 {
 		for _, v2 := range slice2 {
@@ -310,7 +314,7 @@ func primitiveToHclString(value interface{}, isNested bool) string {
 	}
 }
 
-func validateTimestring(timeString string, name string) diag.Diagnostics {
+func validateTimestring(timeString, name string) diag.Diagnostics {
 	var diags diag.Diagnostics
 	regex := `^\d{4}[-]\d{2}[-]\d{2}$`
 	matched, err := regexp.MatchString(regex, timeString)

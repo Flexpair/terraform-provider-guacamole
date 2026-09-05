@@ -44,6 +44,29 @@ func TestUserPermissionUpdateDeltas(t *testing.T) {
 	}
 }
 
+func TestPermissionUpdateDefinitions(t *testing.T) {
+	client := guac.New(guac.Config{})
+	tests := []struct {
+		name string
+		got  []permissionUpdateDefinition
+	}{
+		{name: "user", got: userPermissionUpdates(&client)},
+		{name: "user group", got: userGroupPermissionUpdates(&client)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if len(tc.got) != 4 {
+				t.Fatalf("permission update definitions = %d, want 4", len(tc.got))
+			}
+			for _, definition := range tc.got {
+				if definition.remove == nil || definition.add == nil || definition.apply == nil {
+					t.Fatalf("permission update %q has incomplete handlers", definition.field)
+				}
+			}
+		})
+	}
+}
+
 func TestUserGroupPermissionUpdateDeltas(t *testing.T) {
 	old := []string{"group-old", "group-shared"}
 	new := []string{"group-shared", "group-new"}
