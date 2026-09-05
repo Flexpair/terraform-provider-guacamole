@@ -216,40 +216,44 @@ func TestResourceUserUpdateSendsConnectionPermissionDelta(t *testing.T) {
 	}
 }
 
-func TestResourceUserGroupUpdateSendsMembershipDelta(t *testing.T) {
-	var patchPath string
-	var patchItems []types.GuacPermissionItem
-	var patchErr error
-	server := newPermissionTestServer(t, func(r *http.Request) {
-		patchPath = r.URL.Path
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			patchErr = err
-			return
-		}
-		patchErr = json.Unmarshal(body, &patchItems)
-	})
-	defer server.Close()
-
-	lazyClient := newPermissionTestLazyClient(t, server.URL)
-	data := changedResourceData(t, guacamoleUserGroup(), "test-group",
-		map[string]interface{}{"identifier": "test-group"},
-		map[string]interface{}{"identifier": "test-group", "group_membership": []interface{}{"parent"}},
-	)
-
-	if diags := resourceUserGroupUpdate(context.Background(), data, lazyClient); diags.HasError() {
-		t.Fatalf("resourceUserGroupUpdate() returned diagnostics: %#v", diags)
-	}
-	if patchErr != nil {
-		t.Fatalf("decode membership permission patch: %v", patchErr)
+func TestResourceMembershipUpdatesSendDeltas(t *testing.T) {
+	tests := []struct {
+		name     string
+		resource *schema.Resource
+		id       string
+		wantPath string
+		update   func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
+	}{
+		{
+			name:     "user membership",
+			resource: guacamoleUser(),
+			id:       "test-user",
+			wantPath: "/api/session/data/test/users/test-user/userGroups",
+			update:   resourceUserUpdate,
+		},
+		{
+			name:     "user group membership",
+			resource: guacamoleUserGroup(),
+			id:       "test-group",
+			wantPath: "/api/session/data/test/userGroups/test-group/memberUserGroups",
+			update:   resourceUserGroupUpdate,
+		},
 	}
 
-	want := []types.GuacPermissionItem{{Op: "add", Path: "/", Value: "parent"}}
-	if patchPath != "/api/session/data/test/userGroups/test-group/memberUserGroups" {
-		t.Fatalf("membership patch path = %q", patchPath)
-	}
-	if !reflect.DeepEqual(patchItems, want) {
-		t.Fatalf("membership patch = %#v, want %#v", patchItems, want)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			path, items, err := runPermissionUpdate(t, tc.resource, tc.id, "group_membership", nil, []interface{}{"parent"}, tc.update)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if path != tc.wantPath {
+				t.Fatalf("membership patch path = %q, want %q", path, tc.wantPath)
+			}
+			want := []types.GuacPermissionItem{{Op: "add", Path: "/", Value: "parent"}}
+			if !reflect.DeepEqual(items, want) {
+				t.Fatalf("membership patch = %#v, want %#v", items, want)
+			}
+		})
 	}
 }
 
