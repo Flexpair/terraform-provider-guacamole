@@ -56,6 +56,83 @@ func TestStringInSlice(t *testing.T) {
 	assertDiagnostic(t, got[0], diag.Error, "Invalid value entered", "vnc is not one of supported values: ssh, rdp")
 }
 
+func TestValidateStringFields(t *testing.T) {
+	tests := []struct {
+		name        string
+		values      []interface{}
+		integerKeys []string
+		restricted  map[string][]string
+		fieldKind   string
+		want        int
+	}{
+		{
+			name:        "empty block",
+			values:      []interface{}{},
+			integerKeys: []string{"port"},
+			restricted:  map[string][]string{"mode": {"valid"}},
+			fieldKind:   "parameter",
+		},
+		{
+			name: "valid integer and restricted value",
+			values: []interface{}{map[string]interface{}{
+				"port": "22",
+				"mode": "valid",
+			}},
+			integerKeys: []string{"port"},
+			restricted:  map[string][]string{"mode": {"valid"}},
+			fieldKind:   "parameter",
+		},
+		{
+			name: "invalid integer",
+			values: []interface{}{map[string]interface{}{
+				"port": "not-an-integer",
+			}},
+			integerKeys: []string{"port"},
+			fieldKind:   "parameter",
+			want:        1,
+		},
+		{
+			name: "invalid restricted value",
+			values: []interface{}{map[string]interface{}{
+				"mode": "invalid",
+			}},
+			restricted: map[string][]string{"mode": {"valid"}},
+			fieldKind:  "parameter",
+			want:       1,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := validateStringFields(tc.values, tc.integerKeys, tc.restricted, tc.fieldKind)
+			if len(got) != tc.want {
+				t.Fatalf("validateStringFields() returned %d diagnostics, want %d: %#v", len(got), tc.want, got)
+			}
+		})
+	}
+}
+
+func TestValidateTimezone(t *testing.T) {
+	tests := []struct {
+		name   string
+		values []interface{}
+		want   int
+	}{
+		{name: "empty block", values: []interface{}{}},
+		{name: "valid timezone", values: []interface{}{map[string]interface{}{"timezone": "UTC"}}},
+		{name: "invalid timezone", values: []interface{}{map[string]interface{}{"timezone": "not/a-timezone"}}, want: 1},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := validateTimezone(tc.values, "timezone")
+			if len(got) != tc.want {
+				t.Fatalf("validateTimezone() returned %d diagnostics, want %d: %#v", len(got), tc.want, got)
+			}
+		})
+	}
+}
+
 func TestCheckForDuplicates(t *testing.T) {
 	if got := checkForDuplicates([]string{"ssh", "rdp"}); len(got) != 0 {
 		t.Fatalf("unique values returned diagnostics: %#v", got)

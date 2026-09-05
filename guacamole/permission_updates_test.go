@@ -60,7 +60,7 @@ func TestUserPermissionSchemasUseSets(t *testing.T) {
 	for _, resource := range []*schema.Resource{guacamoleUser(), guacamoleUserGroup()} {
 		for _, field := range []string{"group_membership", "system_permissions", "connections", "connection_groups"} {
 			if resource.Schema[field] == nil {
-				continue
+				t.Fatalf("schema field %q is missing", field)
 			}
 			if resource.Schema[field].Type != schema.TypeSet {
 				t.Fatalf("schema field %q has type %v, want TypeSet", field, resource.Schema[field].Type)
