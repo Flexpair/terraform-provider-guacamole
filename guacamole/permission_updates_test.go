@@ -105,101 +105,72 @@ func TestPermissionItemConstructors(t *testing.T) {
 	}
 }
 
+type permissionUpdateCase struct {
+	name  string
+	field string
+	old   []interface{}
+	new   []interface{}
+	want  []types.GuacPermissionItem
+}
+
+type permissionUpdateSuite struct {
+	name     string
+	resource *schema.Resource
+	id       string
+	wantPath string
+	update   func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
+	cases    []permissionUpdateCase
+}
+
+func newPermissionUpdateCase(name, field string, old, new []interface{}, want ...types.GuacPermissionItem) permissionUpdateCase {
+	return permissionUpdateCase{name: name, field: field, old: old, new: new, want: want}
+}
+
+func systemPermissionUpdateCase() permissionUpdateCase {
+	return newPermissionUpdateCase("system permissions", "system_permissions", []interface{}{"CREATE_USER"}, []interface{}{"CREATE_CONNECTION"},
+		types.GuacPermissionItem{Op: "remove", Path: "/systemPermissions", Value: "CREATE_USER"},
+		types.GuacPermissionItem{Op: "add", Path: "/systemPermissions", Value: "CREATE_CONNECTION"})
+}
+
+func connectionPermissionUpdateCase() permissionUpdateCase {
+	return newPermissionUpdateCase("connections", "connections", []interface{}{"old-connection"}, []interface{}{"new-connection"},
+		types.GuacPermissionItem{Op: "remove", Path: "/connectionPermissions/old-connection", Value: "READ"},
+		types.GuacPermissionItem{Op: "add", Path: "/connectionPermissions/new-connection", Value: "READ"})
+}
+
+func connectionGroupPermissionUpdateCase() permissionUpdateCase {
+	return newPermissionUpdateCase("connection groups", "connection_groups", []interface{}{"old-group"}, []interface{}{"new-group"},
+		types.GuacPermissionItem{Op: "remove", Path: "/connectionGroupPermissions/old-group", Value: "READ"},
+		types.GuacPermissionItem{Op: "add", Path: "/connectionGroupPermissions/new-group", Value: "READ"})
+}
+
+func newPermissionUpdateSuite(name, id, path string, resource *schema.Resource, update func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics, cases ...permissionUpdateCase) permissionUpdateSuite {
+	return permissionUpdateSuite{name: name, resource: resource, id: id, wantPath: path, update: update, cases: cases}
+}
+
 func TestResourcePermissionUpdatesSendDeltas(t *testing.T) {
-	tests := []struct {
-		name     string
-		resource *schema.Resource
-		id       string
-		field    string
-		old      []interface{}
-		new      []interface{}
-		want     []types.GuacPermissionItem
-		wantPath string
-		update   func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
-	}{
-		{
-			name:     "user system permissions",
-			resource: guacamoleUser(),
-			id:       "test-user",
-			field:    "system_permissions",
-			old:      []interface{}{"CREATE_USER"},
-			new:      []interface{}{"CREATE_CONNECTION"},
-			want: []types.GuacPermissionItem{
-				{Op: "remove", Path: "/systemPermissions", Value: "CREATE_USER"},
-				{Op: "add", Path: "/systemPermissions", Value: "CREATE_CONNECTION"},
-			},
-			wantPath: "/api/session/data/test/users/test-user/permissions",
-			update:   resourceUserUpdate,
-		},
-		{
-			name:     "user connection groups",
-			resource: guacamoleUser(),
-			id:       "test-user",
-			field:    "connection_groups",
-			old:      []interface{}{"old-group"},
-			new:      []interface{}{"new-group"},
-			want: []types.GuacPermissionItem{
-				{Op: "remove", Path: "/connectionGroupPermissions/old-group", Value: "READ"},
-				{Op: "add", Path: "/connectionGroupPermissions/new-group", Value: "READ"},
-			},
-			wantPath: "/api/session/data/test/users/test-user/permissions",
-			update:   resourceUserUpdate,
-		},
-		{
-			name:     "group system permissions",
-			resource: guacamoleUserGroup(),
-			id:       "test-group",
-			field:    "system_permissions",
-			old:      []interface{}{"CREATE_USER"},
-			new:      []interface{}{"CREATE_CONNECTION"},
-			want: []types.GuacPermissionItem{
-				{Op: "remove", Path: "/systemPermissions", Value: "CREATE_USER"},
-				{Op: "add", Path: "/systemPermissions", Value: "CREATE_CONNECTION"},
-			},
-			wantPath: "/api/session/data/test/userGroups/test-group/permissions",
-			update:   resourceUserGroupUpdate,
-		},
-		{
-			name:     "group connections",
-			resource: guacamoleUserGroup(),
-			id:       "test-group",
-			field:    "connections",
-			old:      []interface{}{"old-connection"},
-			new:      []interface{}{"new-connection"},
-			want: []types.GuacPermissionItem{
-				{Op: "remove", Path: "/connectionPermissions/old-connection", Value: "READ"},
-				{Op: "add", Path: "/connectionPermissions/new-connection", Value: "READ"},
-			},
-			wantPath: "/api/session/data/test/userGroups/test-group/permissions",
-			update:   resourceUserGroupUpdate,
-		},
-		{
-			name:     "group connection groups",
-			resource: guacamoleUserGroup(),
-			id:       "test-group",
-			field:    "connection_groups",
-			old:      []interface{}{"old-group"},
-			new:      []interface{}{"new-group"},
-			want: []types.GuacPermissionItem{
-				{Op: "remove", Path: "/connectionGroupPermissions/old-group", Value: "READ"},
-				{Op: "add", Path: "/connectionGroupPermissions/new-group", Value: "READ"},
-			},
-			wantPath: "/api/session/data/test/userGroups/test-group/permissions",
-			update:   resourceUserGroupUpdate,
-		},
+	suites := []permissionUpdateSuite{
+		newPermissionUpdateSuite("user", "test-user", "/api/session/data/test/users/test-user/permissions", guacamoleUser(), resourceUserUpdate,
+			systemPermissionUpdateCase(), connectionGroupPermissionUpdateCase()),
+		newPermissionUpdateSuite("user group", "test-group", "/api/session/data/test/userGroups/test-group/permissions", guacamoleUserGroup(), resourceUserGroupUpdate,
+			systemPermissionUpdateCase(), connectionPermissionUpdateCase(), connectionGroupPermissionUpdateCase()),
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			path, items, err := runPermissionUpdate(t, tc.resource, tc.id, tc.field, tc.old, tc.new, tc.update)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if path != tc.wantPath {
-				t.Fatalf("permission patch path = %q, want %q", path, tc.wantPath)
-			}
-			if !reflect.DeepEqual(items, tc.want) {
-				t.Fatalf("permission patch = %#v, want %#v", items, tc.want)
+	for _, suite := range suites {
+		t.Run(suite.name, func(t *testing.T) {
+			for _, tc := range suite.cases {
+				t.Run(tc.name, func(t *testing.T) {
+					path, items, err := runPermissionUpdate(t, suite.resource, suite.id, tc.field, tc.old, tc.new, suite.update)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if path != suite.wantPath {
+						t.Fatalf("permission patch path = %q, want %q", path, suite.wantPath)
+					}
+					if !reflect.DeepEqual(items, tc.want) {
+						t.Fatalf("permission patch = %#v, want %#v", items, tc.want)
+					}
+				})
 			}
 		})
 	}
