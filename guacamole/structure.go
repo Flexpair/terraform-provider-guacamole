@@ -95,12 +95,12 @@ func validateTimezone(values []interface{}, key string) diag.Diagnostics {
 }
 
 func sliceDiff(slice1 []string, slice2 []string, bidirectional bool) []string {
-	second := sliceDiffOneWay(slice1, slice2)
+	diff := sliceDiffOneWay(slice1, slice2)
 	if !bidirectional {
-		return second
+		return diff
 	}
 
-	return append(second, sliceDiffOneWay(slice2, slice1)...)
+	return append(diff, sliceDiffOneWay(slice2, slice1)...)
 }
 
 func sliceDiffOneWay(slice1, slice2 []string) []string {
