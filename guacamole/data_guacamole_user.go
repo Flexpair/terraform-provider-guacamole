@@ -2,7 +2,6 @@ package guacamole
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -132,7 +131,7 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Error reading guacamole user: %s", username),
+			Summary:  "Error reading guacamole user: " + username,
 			Detail:   err.Error(),
 		})
 

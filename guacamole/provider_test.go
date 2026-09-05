@@ -28,10 +28,10 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if err := os.Getenv("GUACAMOLE_URL"); err == "" {
+	if os.Getenv("GUACAMOLE_URL") == "" {
 		t.Fatal("GUACAMOLE_URL must be set for acceptance tests")
 	}
-	if err := os.Getenv("GUACAMOLE_PASSWORD"); err == "" {
+	if os.Getenv("GUACAMOLE_PASSWORD") == "" {
 		if os.Getenv("GUACAMOLE_TOKEN") == "" {
 			t.Fatal("GUACAMOLE_PASSWORD or GUACAMOLE_TOKEN must be set for acceptance tests")
 		}
@@ -40,7 +40,7 @@ func testAccPreCheck(t *testing.T) {
 			t.Fatal("GUACAMOLE_USERNAME must be set for acceptance tests when GUACAMOLE_PASSWORD is set")
 		}
 	}
-	if err := os.Getenv("GUACAMOLE_TOKEN"); err != "" {
+	if os.Getenv("GUACAMOLE_TOKEN") != "" {
 		if os.Getenv("GUACAMOLE_DATA_SOURCE") == "" {
 			t.Fatal("GUACAMOLE_DATA_SOURCE must be set for acceptance tests when GUACAMOLE_TOKEN is provided")
 		}

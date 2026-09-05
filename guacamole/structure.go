@@ -80,7 +80,7 @@ func stringInSlice(valid []string, test []string) diag.Diagnostics {
 		if !matchFlag {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  fmt.Sprintf("Invalid value entered"),
+				Summary:  "Invalid value entered",
 				Detail:   fmt.Sprintf("%s is not one of supported values: %s", t, strings.Join(valid[:], ", ")),
 			})
 		}
@@ -108,7 +108,7 @@ func checkForDuplicates(slice1 []string) diag.Diagnostics {
 	if len(duplicates) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Duplicate entries found in array"),
+			Summary:  "Duplicate entries found in array",
 			Detail:   fmt.Sprintf("Found the duplicate entries: %s", strings.Join(duplicates[:], ", ")),
 		})
 		return diags
@@ -260,8 +260,8 @@ func validateTimestring(timeString string, name string) diag.Diagnostics {
 	if err != nil || !matched {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Invalid timestring format for: %s", name),
-			Detail:   "Date string must be in the form of YYYY-DD-MM",
+			Summary:  "Invalid timestring format for: " + name,
+			Detail:   "Date string must be in the form of YYYY-MM-DD",
 		})
 	}
 	return diags
