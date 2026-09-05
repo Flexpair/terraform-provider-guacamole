@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -97,83 +98,9 @@ func resourceUserGroupCreate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	groupMembershipSet, ok := d.GetOk("group_membership")
-	var groupMembership []string
-	for _, group := range groupMembershipSet.(*schema.Set).List() {
-		groupMembership = append(groupMembership, group.(string))
-	}
-	if ok && len(groupMembership) > 0 {
-		check := validateGroups(client, groupMembership)
-		if check.HasError() {
-			diags = append(diags, check...)
-			goto Cleanup
-		}
-		var permissionItems []types.GuacPermissionItem
-		for _, group := range groupMembership {
-			permissionItems = append(permissionItems, client.NewAddGroupMemberPermission(group))
-		}
-		err = client.SetUserGroupMemberGroups(group.Identifier, &permissionItems)
-		if err != nil {
-			diags = append(diags, diag.FromErr(err)...)
-			goto Cleanup
-		}
-	}
-
-	if !diags.HasError() {
-		systemPermissionsSet, ok := d.GetOk("system_permissions")
-		var systemPermissions []string
-		for _, group := range systemPermissionsSet.(*schema.Set).List() {
-			systemPermissions = append(systemPermissions, group.(string))
-		}
-		if ok && len(systemPermissions) > 0 {
-			check := stringInSlice(types.SystemPermissions{}.ValidChoices(), systemPermissions)
-			if check.HasError() {
-				diags = append(diags, check...)
-				goto Cleanup
-			}
-			var permissionItems []types.GuacPermissionItem
-			for _, permission := range systemPermissions {
-				permissionItems = append(permissionItems, client.NewAddSystemPermission(permission))
-			}
-			err = client.SetUserGroupPermissions(group.Identifier, &permissionItems)
-			if err != nil {
-				diags = append(diags, diag.FromErr(err)...)
-				goto Cleanup
-			}
-		}
-	}
-
-	if !diags.HasError() {
-		var connectionPermissionItems []types.GuacPermissionItem
-		connectionSet, ok := d.GetOk("connections")
-		var connections []string
-		for _, connection := range connectionSet.(*schema.Set).List() {
-			connections = append(connections, connection.(string))
-		}
-		if ok && len(connections) > 0 {
-			for _, connection := range connections {
-				connectionPermissionItems = append(connectionPermissionItems, client.NewAddConnectionPermission(connection))
-			}
-		}
-
-		connectionGroupSet, ok := d.GetOk("connection_groups")
-		var connectionGroups []string
-		for _, connectionGroup := range connectionGroupSet.(*schema.Set).List() {
-			connectionGroups = append(connectionGroups, connectionGroup.(string))
-		}
-		if ok && len(connectionGroups) > 0 {
-			for _, connectionGroup := range connectionGroups {
-				connectionPermissionItems = append(connectionPermissionItems, client.NewAddConnectionGroupPermission(connectionGroup))
-			}
-		}
-
-		if len(connectionPermissionItems) > 0 {
-			err = client.SetUserGroupPermissions(group.Identifier, &connectionPermissionItems)
-			if err != nil {
-				diags = append(diags, diag.FromErr(err)...)
-				goto Cleanup
-			}
-		}
+	if check := applyUserGroupCreatePermissions(d, group.Identifier, client); check.HasError() {
+		diags = append(diags, check...)
+		goto Cleanup
 	}
 
 	d.SetId(group.Identifier)
@@ -278,151 +205,9 @@ func resourceUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if d.HasChange("group_membership") {
-		var permissionItems []types.GuacPermissionItem
-		var oldGroups, newGroups []string
-		old, new := d.GetChange("group_membership")
-		for _, group := range old.(*schema.Set).List() {
-			oldGroups = append(oldGroups, group.(string))
-		}
-
-		for _, group := range new.(*schema.Set).List() {
-			newGroups = append(newGroups, group.(string))
-		}
-
-		removeGroups := sliceDiff(oldGroups, newGroups, false)
-		if len(removeGroups) > 0 {
-			for _, group := range removeGroups {
-				permissionItems = append(permissionItems, client.NewRemoveGroupMemberPermission(group))
-			}
-		}
-
-		addGroups := sliceDiff(newGroups, oldGroups, false)
-		if len(addGroups) > 0 {
-			check := validateGroups(client, addGroups)
-			if check.HasError() {
-				return check
-			}
-			check = checkForDuplicates(addGroups)
-			if check.HasError() {
-				return check
-			}
-			for _, group := range addGroups {
-				permissionItems = append(permissionItems, client.NewAddGroupMemberPermission(group))
-			}
-		}
-		if len(permissionItems) > 0 {
-			err := client.SetUserGroupMemberGroups(d.Id(), &permissionItems)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
-	}
-
-	if d.HasChange("system_permissions") {
-		var permissionItems []types.GuacPermissionItem
-		old, new := d.GetChange("system_permissions")
-		var oldPermissions, newPermissions []string
-
-		for _, permission := range old.(*schema.Set).List() {
-			oldPermissions = append(oldPermissions, permission.(string))
-		}
-
-		for _, permission := range new.(*schema.Set).List() {
-			newPermissions = append(newPermissions, permission.(string))
-		}
-
-		removePermissions := sliceDiff(oldPermissions, newPermissions, false)
-		if len(removePermissions) > 0 {
-			for _, permission := range removePermissions {
-				permissionItems = append(permissionItems, client.NewRemoveSystemPermission(permission))
-			}
-		}
-
-		addPermissions := sliceDiff(newPermissions, oldPermissions, false)
-		if len(addPermissions) > 0 {
-			check := stringInSlice(types.SystemPermissions{}.ValidChoices(), addPermissions)
-			if check.HasError() {
-				return check
-			}
-			for _, permission := range addPermissions {
-				permissionItems = append(permissionItems, client.NewAddSystemPermission(permission))
-			}
-		}
-		if len(permissionItems) > 0 {
-			err := client.SetUserGroupPermissions(d.Id(), &permissionItems)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
-	}
-
-	if d.HasChange("connections") {
-		var permissionItems []types.GuacPermissionItem
-		old, new := d.GetChange("connections")
-		var oldConnections, newConnnections []string
-
-		for _, connection := range old.(*schema.Set).List() {
-			oldConnections = append(oldConnections, connection.(string))
-		}
-
-		for _, connection := range new.(*schema.Set).List() {
-			newConnnections = append(newConnnections, connection.(string))
-		}
-
-		removeConnections := sliceDiff(oldConnections, newConnnections, false)
-		if len(removeConnections) > 0 {
-			for _, connection := range removeConnections {
-				permissionItems = append(permissionItems, client.NewRemoveConnectionPermission(connection))
-			}
-		}
-
-		addConnections := sliceDiff(newConnnections, oldConnections, false)
-		if len(addConnections) > 0 {
-			for _, connection := range addConnections {
-				permissionItems = append(permissionItems, client.NewAddConnectionPermission(connection))
-			}
-		}
-		if len(permissionItems) > 0 {
-			err := client.SetUserGroupPermissions(d.Id(), &permissionItems)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
-	}
-
-	if d.HasChange("connection_groups") {
-		var permissionItems []types.GuacPermissionItem
-		old, new := d.GetChange("connection_groups")
-		var oldConnectionGroups, newConnectionGroups []string
-
-		for _, connection := range old.(*schema.Set).List() {
-			oldConnectionGroups = append(oldConnectionGroups, connection.(string))
-		}
-
-		for _, connection := range new.(*schema.Set).List() {
-			newConnectionGroups = append(newConnectionGroups, connection.(string))
-		}
-
-		removeConnectionGroups := sliceDiff(oldConnectionGroups, newConnectionGroups, false)
-		if len(removeConnectionGroups) > 0 {
-			for _, connection := range removeConnectionGroups {
-				permissionItems = append(permissionItems, client.NewRemoveConnectionGroupPermission(connection))
-			}
-		}
-
-		addConnectionGroups := sliceDiff(newConnectionGroups, oldConnectionGroups, false)
-		if len(addConnectionGroups) > 0 {
-			for _, connection := range addConnectionGroups {
-				permissionItems = append(permissionItems, client.NewAddConnectionGroupPermission(connection))
-			}
-		}
-		if len(permissionItems) > 0 {
-			err := client.SetUserGroupPermissions(d.Id(), &permissionItems)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
+	updates := userGroupPermissionUpdates(client)
+	if check := applyPermissionUpdates(d, d.Id(), updates); check.HasError() {
+		return check
 	}
 
 	return resourceUserGroupRead(ctx, d, m)
@@ -446,6 +231,33 @@ func resourceUserGroupDelete(ctx context.Context, d *schema.ResourceData, m inte
 	d.SetId("")
 
 	return diags
+}
+
+func applyUserGroupCreatePermissions(d *schema.ResourceData, identifier string, client *guac.Client) diag.Diagnostics {
+	groupMembership := stringSetValues(d.Get("group_membership"))
+	if check := applyPermissionItems(identifier, groupMembership, func(values []string) diag.Diagnostics { return validateGroups(client, values) }, client.NewAddGroupMemberPermission, client.SetUserGroupMemberGroups); check.HasError() {
+		return check
+	}
+
+	systemPermissions := stringSetValues(d.Get("system_permissions"))
+	if check := applyPermissionItems(identifier, systemPermissions, func(values []string) diag.Diagnostics {
+		return stringInSlice(types.SystemPermissions{}.ValidChoices(), values)
+	}, client.NewAddSystemPermission, client.SetUserGroupPermissions); check.HasError() {
+		return check
+	}
+
+	return applyConnectionPermissionItems(identifier, stringSetValues(d.Get("connections")), stringSetValues(d.Get("connection_groups")), client.NewAddConnectionPermission, client.NewAddConnectionGroupPermission, client.SetUserGroupPermissions)
+}
+
+func userGroupPermissionUpdates(client *guac.Client) []permissionUpdateDefinition {
+	return []permissionUpdateDefinition{
+		{field: "group_membership", validate: func(values []string) diag.Diagnostics { return validateGroups(client, values) }, remove: client.NewRemoveGroupMemberPermission, add: client.NewAddGroupMemberPermission, apply: client.SetUserGroupMemberGroups},
+		{field: "system_permissions", validate: func(values []string) diag.Diagnostics {
+			return stringInSlice(types.SystemPermissions{}.ValidChoices(), values)
+		}, remove: client.NewRemoveSystemPermission, add: client.NewAddSystemPermission, apply: client.SetUserGroupPermissions},
+		{field: "connections", remove: client.NewRemoveConnectionPermission, add: client.NewAddConnectionPermission, apply: client.SetUserGroupPermissions},
+		{field: "connection_groups", remove: client.NewRemoveConnectionGroupPermission, add: client.NewAddConnectionGroupPermission, apply: client.SetUserGroupPermissions},
+	}
 }
 
 func convertResourceDataToGuacUserGroup(d *schema.ResourceData) (types.GuacUserGroup, error) {
