@@ -81,7 +81,7 @@ func testAccCheckGuacamoleUserDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckGuacamoleUserConfigBasic(group string, user string) string {
+func testAccCheckGuacamoleUserConfigBasic(group, user string) string {
 	return fmt.Sprintf(`
 	resource "guacamole_user_group" "new" %s
 	resource "guacamole_user" "new" %s

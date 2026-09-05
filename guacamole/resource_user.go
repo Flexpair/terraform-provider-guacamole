@@ -2,7 +2,7 @@ package guacamole
 
 import (
 	"context"
-	"fmt"
+
 	"strconv"
 	"strings"
 	"time"
@@ -281,7 +281,7 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Error reading guacamole user: %s", userID),
+			Summary:  "Error reading guacamole user: " + userID,
 			Detail:   err.Error(),
 		})
 
@@ -605,8 +605,8 @@ func validateGroups(client *guac.Client, groups []string) diag.Diagnostics {
 	if len(invalidUserGroups) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Invalid user group(s) supplied"),
-			Detail:   fmt.Sprintf("The following groups are invalid for group_membership: %s", strings.Join(invalidUserGroups[:], ", ")),
+			Summary:  "Invalid user group(s) supplied",
+			Detail:   "The following groups are invalid for group_membership: " + strings.Join(invalidUserGroups[:], ", "),
 		})
 		return diags
 	}
@@ -628,7 +628,7 @@ func validateUser(d *schema.ResourceData) diag.Diagnostics {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Invalid timezone",
-				Detail:   fmt.Sprintf("Unable to process timezone string: %s", timezone),
+				Detail:   "Unable to process timezone string: " + timezone,
 			})
 		}
 

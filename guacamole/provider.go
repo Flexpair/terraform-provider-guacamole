@@ -96,7 +96,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)
 	token := d.Get("token").(string)
-	data_source := d.Get("data_source").(string)
+	dataSource := d.Get("data_source").(string)
 	disableTLS := d.Get("disable_tls_verification").(bool)
 	disableCookies := d.Get("disable_cookies").(bool)
 
@@ -113,7 +113,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		Username:               username,
 		Password:               password,
 		Token:                  token,
-		DataSource:             data_source,
+		DataSource:             dataSource,
 		Cookies:                cookies,
 		DisableTLSVerification: disableTLS,
 		DisableCookies:         disableCookies,
