@@ -10,8 +10,20 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+func stringToBool(v string) bool {
+	if v == "" {
+		return false
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false
+	}
+	return b
+}
 
 func boolToString(b bool) string {
 	if b == true {
@@ -90,28 +102,22 @@ func sliceDiff(slice1 []string, slice2 []string, bidirectional bool) []string {
 		loopCount = 1
 	}
 
-	// Loop two times, first to find slice1 strings not in slice2,
-	// second loop to find slice2 strings not in slice1
 	for i := 0; i < loopCount; i++ {
-		for _, s1 := range slice1 {
-			found := false
-			for _, s2 := range slice2 {
-				if s1 == s2 {
-					found = true
-					break
+		for _, v1 := range slice1 {
+			match := false
+			for _, v2 := range slice2 {
+				if v1 == v2 {
+					match = true
 				}
 			}
-			// String not found. We add it to return slice
-			if !found {
-				diff = append(diff, s1)
+			if !match {
+				diff = append(diff, v1)
 			}
 		}
-		// Swap the slices, only if it was the first loop
-		if i == 0 {
+		if bidirectional {
 			slice1, slice2 = slice2, slice1
 		}
 	}
-
 	return diff
 }
 
@@ -119,18 +125,17 @@ func stringInSlice(valid, test []string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	for _, t := range test {
-		matchFlag := false
+		match := false
 		for _, v := range valid {
-			if v == t {
-				matchFlag = true
-				break
+			if t == v {
+				match = true
 			}
 		}
-		if !matchFlag {
+		if !match {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Invalid value entered",
-				Detail:   fmt.Sprintf("%s is not one of supported values: %s", t, strings.Join(valid[:], ", ")),
+				Summary:  "Invalid entry",
+				Detail:   fmt.Sprintf("%s is not a valid entry", t),
 			})
 		}
 	}
@@ -139,28 +144,17 @@ func stringInSlice(valid, test []string) diag.Diagnostics {
 
 func checkForDuplicates(slice1 []string) diag.Diagnostics {
 	var diags diag.Diagnostics
-	var check []string
-	var duplicates []string
-
+	var output []string
 	for _, v1 := range slice1 {
-		matchFlag := false
-		for _, v2 := range check {
-			if v2 == v1 {
-				matchFlag = true
-				duplicates = append(duplicates, v2)
-			}
+		if !stringInSlice(output, []string{v1}).HasError() {
+			output = append(output, v1)
+		} else {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Duplicate entry",
+				Detail:   fmt.Sprintf("%s is duplicated", v1),
+			})
 		}
-		if !matchFlag {
-			check = append(check, v1)
-		}
-	}
-	if len(duplicates) > 0 {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Duplicate entries found in array",
-			Detail:   fmt.Sprintf("Found the duplicate entries: %s", strings.Join(duplicates[:], ", ")),
-		})
-		return diags
 	}
 	return diags
 }
@@ -171,135 +165,90 @@ func sortSliceBySlice(slice1, slice2 []string) []string {
 	for _, v1 := range slice1 {
 		for _, v2 := range slice2 {
 			if v1 == v2 {
-				sorted = append(sorted, v1)
-				break
+				sorted = append(sorted, v2)
 			}
-		}
-	}
-	for _, v1 := range slice2 {
-		matchFlag := false
-		for _, v2 := range sorted {
-			if v1 == v2 {
-				matchFlag = true
-				break
-			}
-		}
-		if !matchFlag {
-			sorted = append(sorted, v1)
 		}
 	}
 	return sorted
 }
 
-func toHclString(value interface{}, isNested bool) string {
-	// Ideally, we'd use a type switch here to identify slices and maps, but we can't do that, because Go doesn't
-	// support generics, and the type switch only matches concrete types. So we could match []interface{}, but if
-	// a user passes in []string{}, that would NOT match (the same logic applies to maps). Therefore, we have to
-	// use reflection and manually convert into []interface{} and map[string]interface{}.
-
-	if slice, isSlice := tryToConvertToGenericSlice(value); isSlice {
-		return sliceToHclString(slice)
-	} else if m, isMap := tryToConvertToGenericMap(value); isMap {
-		return mapToHclString(m)
-	} else {
-		return primitiveToHclString(value, isNested)
-	}
-}
-
-// Try to convert the given value to a generic slice. Return the slice and true if the underlying value itself was a
-// slice and an empty slice and false if it wasn't. This is necessary because Go is a shitty language that doesn't
-// have generics, nor useful utility methods built-in. For more info, see: http://stackoverflow.com/a/12754757/483528
-func tryToConvertToGenericSlice(value interface{}) ([]interface{}, bool) {
-	reflectValue := reflect.ValueOf(value)
-	if value == nil || reflectValue.Kind() != reflect.Slice {
-		return []interface{}{}, false
-	}
-
-	genericSlice := make([]interface{}, reflectValue.Len())
-
-	for i := 0; i < reflectValue.Len(); i++ {
-		genericSlice[i] = reflectValue.Index(i).Interface()
-	}
-
-	return genericSlice, true
-}
-
-// Try to convert the given value to a generic map. Return the map and true if the underlying value itself was a
-// map and an empty map and false if it wasn't. This is necessary because Go is a shitty language that doesn't
-// have generics, nor useful utility methods built-in. For more info, see: http://stackoverflow.com/a/12754757/483528
-func tryToConvertToGenericMap(value interface{}) (map[string]interface{}, bool) {
-	reflectValue := reflect.ValueOf(value)
-	if value == nil || reflectValue.Kind() != reflect.Map {
-		return map[string]interface{}{}, false
-	}
-
-	reflectType := reflect.TypeOf(value)
-	if reflectType.Key().Kind() != reflect.String {
-		return map[string]interface{}{}, false
-	}
-
-	genericMap := make(map[string]interface{}, reflectValue.Len())
-
-	mapKeys := reflectValue.MapKeys()
-	for _, key := range mapKeys {
-		genericMap[key.String()] = reflectValue.MapIndex(key).Interface()
-	}
-
-	return genericMap, true
-}
-
-// Convert a slice to an HCL string. See ToHclString for details.
-func sliceToHclString(slice []interface{}) string {
-	hclValues := []string{}
-
-	for _, value := range slice {
-		hclValue := toHclString(value, true)
-		hclValues = append(hclValues, hclValue)
-	}
-
-	return fmt.Sprintf("[%s]", strings.Join(hclValues, ", "))
-}
-
-// Convert a map to an HCL string. See ToHclString for details.
-func mapToHclString(m map[string]interface{}) string {
-	keyValuePairs := []string{}
-
-	for key, value := range m {
-		var keyValuePair string
-		if _, isMap := tryToConvertToGenericMap(value); isMap {
-			keyValuePair = fmt.Sprintf(`%s %s`, key, toHclString(value, true))
-		} else {
-			keyValuePair = fmt.Sprintf(`%s = %s`, key, toHclString(value, true))
+func contains(slice []string, str string) bool {
+	for _, v := range slice {
+		if v == str {
+			return true
 		}
-		keyValuePairs = append(keyValuePairs, keyValuePair)
 	}
-
-	return fmt.Sprintf("{\n%s\n}", strings.Join(keyValuePairs, "\n"))
+	return false
 }
 
-// Convert a primitive, such as a bool, int, or string, to an HCL string. If this isn't a primitive, force its value
-// using Sprintf. See ToHclString for details.
+func convertStringSliceToInterfaceSlice(slice []string) []interface{} {
+	var output []interface{}
+	for _, v := range slice {
+		output = append(output, v)
+	}
+	return output
+}
+
+func convertInterfaceSliceToStringSlice(slice []interface{}) []string {
+	var output []string
+	for _, v := range slice {
+		output = append(output, v.(string))
+	}
+	return output
+}
+
+func listToSet(list []string) *schema.Set {
+	return schema.NewSet(schema.HashString, convertStringSliceToInterfaceSlice(list))
+}
+
+func stringToTime(input string) time.Time {
+	if input == "" {
+		return time.Time{}
+	}
+	output, _ := time.Parse("2006-01-02", input)
+	return output
+}
+
+func boolToTerraformString(b bool) string {
+	return strconv.FormatBool(b)
+}
+
+func stringToTerraformBool(s string) bool {
+	output, _ := strconv.ParseBool(s)
+	return output
+}
+
+func stringSliceToTerraformSet(d *schema.ResourceData, key string, values []string) error {
+	return d.Set(key, values)
+}
+
 func primitiveToHclString(value interface{}, isNested bool) string {
-	if value == nil {
-		return "null"
+	var output string
+	if isNested {
+		output = "{"
 	}
-
-	switch v := value.(type) {
-
-	case bool:
-		return strconv.FormatBool(v)
-
+	switch value := value.(type) {
 	case string:
-		// If string is nested in a larger data structure (e.g. list of string, map of string), ensure value is quoted
-		if isNested {
-			return fmt.Sprintf("\"%v\"", v)
+		output += fmt.Sprintf("\"%s\"", value)
+	case bool:
+		output += fmt.Sprintf("%t", value)
+	case int:
+		output += fmt.Sprintf("%d", value)
+	case []interface{}:
+		output += "["
+		for _, v := range value {
+			output += primitiveToHclString(v, false)
 		}
-
-		return fmt.Sprintf("%v", v)
-
-	default:
-		return fmt.Sprintf("%v", v)
+		output += "]"
+	case map[string]interface{}:
+		for k, v := range value {
+			output += fmt.Sprintf("%s = %s", k, primitiveToHclString(v, true))
+		}
 	}
+	if isNested {
+		output += "}"
+	}
+	return output
 }
 
 func validateTimestring(timeString, name string) diag.Diagnostics {
@@ -309,39 +258,43 @@ func validateTimestring(timeString, name string) diag.Diagnostics {
 	if err != nil || !matched {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Invalid timestring format for: " + name,
-			Detail:   "Date string must be in the form of YYYY-MM-DD",
+			Summary:  "Invalid entry",
+			Detail:   fmt.Sprintf("%s must be a valid date formatted as YYYY-MM-DD", name),
 		})
 	}
 	return diags
 }
 
-func testAccCheckTestSliceVals(resourceName string, key string, expected []string) resource.TestCheckFunc {
+func toHclString(data map[string]interface{}, isNested bool) string {
+	var output string
+	if isNested {
+		output = "{"
+	}
+	for k, v := range data {
+		output += fmt.Sprintf("%s = %s", k, primitiveToHclString(v, true))
+	}
+	if isNested {
+		output += "}"
+	}
+	return output
+}
+
+func testAccCheckTestSliceVals(n string, key string, expected []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[resourceName]
-
+		resource, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not found: %s", resourceName)
+			return fmt.Errorf("Not found: %s", n)
 		}
 
-		v, ok := rs.Primary.Attributes[fmt.Sprintf("%s.#", key)]
-		if !ok {
-			return fmt.Errorf("%s: Attribute '%s.#' not found", resourceName, key)
-		}
-		testCount, _ := strconv.Atoi(v)
-		if testCount == 0 {
-			return fmt.Errorf("No entries found in state for key: %s", key)
-		}
-
-		var sv []string
-		for i := 0; i < testCount; i++ {
-			sv = append(sv, rs.Primary.Attributes[fmt.Sprintf("%s.%d", key, i)])
-		}
-
-		diff := sliceDiff(expected, sv, true)
-		if len(diff) > 0 {
-			return fmt.Errorf("Set values: %s do not match expected value: %s", sv, expected)
+		for _, value := range expected {
+			if !contains(resource.Primary.Attributes[key], value) {
+				return fmt.Errorf("%s does not contain expected value: %s", key, value)
+			}
 		}
 		return nil
 	}
+}
+
+func readResourceDataTestAttr(resource *terraform.Resource, key string) string {
+	return resource.Primary.Attributes[key]
 }
