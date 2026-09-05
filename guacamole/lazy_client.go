@@ -128,6 +128,41 @@ func (lc *LazyClient) Get() (*guac.Client, error) {
 		return nil, lc.err
 	}
 
+	client, err := lc.connectWithRetry()
+	if err != nil {
+		lc.err = err
+		return nil, lc.err
+	}
+
+	lc.client = client
+	return lc.client, nil
+}
+
+func (lc *LazyClient) connectWithRetry() (*guac.Client, error) {
+	connect, sleep, retryInterval, maxAttempts := lc.retryPolicy()
+	var lastErr error
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		client, err := connect(lc.config)
+		if err == nil {
+			if attempt > 1 {
+				log.Printf("[INFO] Guacamole connection succeeded on attempt %d/%d", attempt, maxAttempts)
+			}
+			return client, nil
+		}
+
+		lastErr = err
+		if attempt == maxAttempts {
+			break
+		}
+		log.Printf("[INFO] Guacamole connection attempt %d/%d failed: %v. Retrying in %s...", attempt, maxAttempts, err, retryInterval)
+		sleep(retryInterval)
+	}
+
+	return nil, fmt.Errorf("unable to create guacamole client after %d attempts: %w", maxAttempts, lastErr)
+}
+
+func (lc *LazyClient) retryPolicy() (func(guac.Config) (*guac.Client, error), func(time.Duration), time.Duration, int) {
 	connect := lc.connect
 	if connect == nil {
 		connect = connectGuacamole
@@ -144,26 +179,5 @@ func (lc *LazyClient) Get() (*guac.Client, error) {
 	if maxAttempts < 1 {
 		maxAttempts = 1
 	}
-
-	var lastErr error
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		client, err := connect(lc.config)
-		if err != nil {
-			lastErr = err
-			if attempt < maxAttempts {
-				log.Printf("[INFO] Guacamole connection attempt %d/%d failed: %v. Retrying in %s...", attempt, maxAttempts, err, retryInterval)
-				sleep(retryInterval)
-				continue
-			}
-		} else {
-			if attempt > 1 {
-				log.Printf("[INFO] Guacamole connection succeeded on attempt %d/%d", attempt, maxAttempts)
-			}
-			lc.client = client
-			return lc.client, nil
-		}
-	}
-
-	lc.err = fmt.Errorf("unable to create guacamole client after %d attempts: %w", maxAttempts, lastErr)
-	return nil, lc.err
+	return connect, sleep, retryInterval, maxAttempts
 }

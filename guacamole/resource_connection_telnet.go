@@ -2,8 +2,6 @@ package guacamole
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -484,94 +482,18 @@ func convertGuacConnectionTelnetToResourceData(d *schema.ResourceData, connectio
 }
 
 func validateConnectionTelnet(d *schema.ResourceData, client *guac.Client) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// validate attributes
-	attributeList := d.Get("attributes").([]interface{})
-
-	stringIntAttributes := []string{
-		"guacd_port",
-		"weight",
-		"max_connections",
-		"max_connections_per_user",
-	}
-
 	var attributeInterface types.GuacConnectionAttributes
-	restrictedValueAttributes := map[string][]string{
-		"guacd_encryption": attributeInterface.ValidEncryptionTypes(),
-	}
-
-	if len(attributeList) > 0 {
-		attributes := attributeList[0].(map[string]interface{})
-		// validate string integer values
-		for _, v := range stringIntAttributes {
-			if attributes[v].(string) != "" {
-				_, err := strconv.Atoi(attributes[v].(string))
-				if err != nil {
-					diags = append(diags, diag.Diagnostic{
-						Severity: diag.Error,
-						Summary:  "Invalid entry",
-						Detail:   fmt.Sprintf("Expected string integer for attribute key: %s but was unable to convert: %s to integer", v, attributes[v].(string)),
-					})
-				}
-			}
-		}
-
-		// validate restricted value fields
-		for k, v := range restrictedValueAttributes {
-			if attributes[k].(string) != "" {
-				check := stringInSlice(v, []string{attributes[k].(string)})
-				if check.HasError() {
-					diags = append(diags, check...)
-				}
-			}
-		}
-	}
-
-	// validate parameters
-	parameterList := d.Get("parameters").([]interface{})
-
-	stringIntparameters := []string{
-		"port",
-		"wol_boot_wait_time",
-	}
-
 	var parameterInterface types.GuacConnectionParameters
-	restrictedValueParameters := map[string][]string{
+	attributeDiagnostics := validateStringFields(d.Get("attributes").([]interface{}), []string{"guacd_port", "weight", "max_connections", "max_connections_per_user"}, map[string][]string{
+		"guacd_encryption": attributeInterface.ValidEncryptionTypes(),
+	}, "attribute")
+	parameterDiagnostics := validateStringFields(d.Get("parameters").([]interface{}), []string{"port", "wol_boot_wait_time"}, map[string][]string{
 		"color_scheme":  parameterInterface.ValidColorSchemes(),
 		"font_size":     parameterInterface.ValidFontSizes(),
 		"backspace":     parameterInterface.ValidBackspaceCodes(),
 		"terminal_type": parameterInterface.ValidTerminalTypes(),
-	}
-
-	if len(parameterList) > 0 {
-		parameters := parameterList[0].(map[string]interface{})
-		// validate string integer values
-		for _, v := range stringIntparameters {
-			if parameters[v].(string) != "" {
-				_, err := strconv.Atoi(parameters[v].(string))
-				if err != nil {
-					diags = append(diags, diag.Diagnostic{
-						Severity: diag.Error,
-						Summary:  "Invalid entry",
-						Detail:   fmt.Sprintf("Expected string integer for parameter key: %s but was unable to convert: %s to integer", v, parameters[v].(string)),
-					})
-				}
-			}
-		}
-
-		// validate restricted value fields
-		for k, v := range restrictedValueParameters {
-			if parameters[k].(string) != "" {
-				check := stringInSlice(v, []string{parameters[k].(string)})
-				if check.HasError() {
-					diags = append(diags, check...)
-				}
-			}
-		}
-	}
-
-	return diags
+	}, "parameter")
+	return append(attributeDiagnostics, parameterDiagnostics...)
 }
 
 func convertResourceDataToGuacConnectionTelnet(d *schema.ResourceData) (types.GuacConnection, diag.Diagnostics) {
