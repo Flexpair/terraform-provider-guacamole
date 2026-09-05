@@ -115,7 +115,7 @@ func TestValidateTimestring(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("invalid date returned %d diagnostics, want 1", len(got))
 	}
-	assertDiagnostic(t, got[0], diag.Error, "Invalid timestring format for: valid_from", "Date string must be in the form of YYYY-DD-MM")
+	assertDiagnostic(t, got[0], diag.Error, "Invalid timestring format for: valid_from", "Date string must be in the form of YYYY-MM-DD")
 }
 
 func TestValidateUser(t *testing.T) {

@@ -261,7 +261,7 @@ func validateTimestring(timeString string, name string) diag.Diagnostics {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Invalid timestring format for: " + name,
-			Detail:   "Date string must be in the form of YYYY-DD-MM",
+			Detail:   "Date string must be in the form of YYYY-MM-DD",
 		})
 	}
 	return diags

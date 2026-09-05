@@ -2,6 +2,7 @@ package guacamole
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -294,7 +295,7 @@ func dataSourceConnectionSSHRead(ctx context.Context, d *schema.ResourceData, m 
 	if path == "" && identifier == "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Missing required parameter",
+			Summary:  fmt.Sprintf("Missing required parameter"),
 			Detail:   "Either `identifier` or `path` must be specified",
 		})
 		return diags
@@ -303,7 +304,7 @@ func dataSourceConnectionSSHRead(ctx context.Context, d *schema.ResourceData, m 
 	if path != "" && identifier != "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Identifier and Path are mutually exclusive",
+			Summary:  fmt.Sprintf("Identifier and Path are mutually exclusive"),
 			Detail:   "Either `identifier` or `path` must be specified but not both",
 		})
 		return diags
