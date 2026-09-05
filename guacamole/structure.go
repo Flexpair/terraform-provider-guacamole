@@ -95,34 +95,24 @@ func validateTimezone(values []interface{}, key string) diag.Diagnostics {
 }
 
 func sliceDiff(slice1 []string, slice2 []string, bidirectional bool) []string {
-	var diff []string
-
-	var loopCount int
-	if bidirectional {
-		loopCount = 2
-	} else {
-		loopCount = 1
+	diff := sliceDiffOneWay(slice1, slice2)
+	if !bidirectional {
+		return diff
 	}
 
-	// Loop two times, first to find slice1 strings not in slice2,
-	// second loop to find slice2 strings not in slice1
-	for i := 0; i < loopCount; i++ {
-		for _, s1 := range slice1 {
-			found := false
-			for _, s2 := range slice2 {
-				if s1 == s2 {
-					found = true
-					break
-				}
-			}
-			// String not found. We add it to return slice
-			if !found {
-				diff = append(diff, s1)
-			}
-		}
-		// Swap the slices, only if it was the first loop
-		if i == 0 {
-			slice1, slice2 = slice2, slice1
+	return append(diff, sliceDiffOneWay(slice2, slice1)...)
+}
+
+func sliceDiffOneWay(slice1, slice2 []string) []string {
+	values := make(map[string]struct{}, len(slice2))
+	for _, value := range slice2 {
+		values[value] = struct{}{}
+	}
+
+	var diff []string
+	for _, value := range slice1 {
+		if _, found := values[value]; !found {
+			diff = append(diff, value)
 		}
 	}
 
