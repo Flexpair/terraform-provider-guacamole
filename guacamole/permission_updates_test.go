@@ -105,101 +105,98 @@ func TestPermissionItemConstructors(t *testing.T) {
 	}
 }
 
-func TestResourceUserUpdateSendsSystemAndConnectionGroupDeltas(t *testing.T) {
+func TestResourcePermissionUpdatesSendDeltas(t *testing.T) {
 	tests := []struct {
 		name     string
+		resource *schema.Resource
+		id       string
 		field    string
 		old      []interface{}
 		new      []interface{}
 		want     []types.GuacPermissionItem
 		wantPath string
+		update   func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
 	}{
 		{
-			name:  "system permissions",
-			field: "system_permissions",
-			old:   []interface{}{"CREATE_USER"},
-			new:   []interface{}{"CREATE_CONNECTION"},
+			name:     "user system permissions",
+			resource: guacamoleUser(),
+			id:       "test-user",
+			field:    "system_permissions",
+			old:      []interface{}{"CREATE_USER"},
+			new:      []interface{}{"CREATE_CONNECTION"},
 			want: []types.GuacPermissionItem{
 				{Op: "remove", Path: "/systemPermissions", Value: "CREATE_USER"},
 				{Op: "add", Path: "/systemPermissions", Value: "CREATE_CONNECTION"},
 			},
+			wantPath: "/api/session/data/test/users/test-user/permissions",
+			update:   resourceUserUpdate,
 		},
 		{
-			name:  "connection groups",
-			field: "connection_groups",
-			old:   []interface{}{"old-group"},
-			new:   []interface{}{"new-group"},
+			name:     "user connection groups",
+			resource: guacamoleUser(),
+			id:       "test-user",
+			field:    "connection_groups",
+			old:      []interface{}{"old-group"},
+			new:      []interface{}{"new-group"},
 			want: []types.GuacPermissionItem{
 				{Op: "remove", Path: "/connectionGroupPermissions/old-group", Value: "READ"},
 				{Op: "add", Path: "/connectionGroupPermissions/new-group", Value: "READ"},
 			},
+			wantPath: "/api/session/data/test/users/test-user/permissions",
+			update:   resourceUserUpdate,
 		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			path, items, err := runPermissionUpdate(t, guacamoleUser(), "test-user", tc.field, tc.old, tc.new, resourceUserUpdate)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if path != "/api/session/data/test/users/test-user/permissions" {
-				t.Fatalf("permission patch path = %q", path)
-			}
-			if !reflect.DeepEqual(items, tc.want) {
-				t.Fatalf("permission patch = %#v, want %#v", items, tc.want)
-			}
-		})
-	}
-}
-
-func TestResourceUserGroupUpdateSendsSystemAndConnectionDeltas(t *testing.T) {
-	tests := []struct {
-		name  string
-		field string
-		old   []interface{}
-		new   []interface{}
-		want  []types.GuacPermissionItem
-	}{
 		{
-			name:  "system permissions",
-			field: "system_permissions",
-			old:   []interface{}{"CREATE_USER"},
-			new:   []interface{}{"CREATE_CONNECTION"},
+			name:     "group system permissions",
+			resource: guacamoleUserGroup(),
+			id:       "test-group",
+			field:    "system_permissions",
+			old:      []interface{}{"CREATE_USER"},
+			new:      []interface{}{"CREATE_CONNECTION"},
 			want: []types.GuacPermissionItem{
 				{Op: "remove", Path: "/systemPermissions", Value: "CREATE_USER"},
 				{Op: "add", Path: "/systemPermissions", Value: "CREATE_CONNECTION"},
 			},
+			wantPath: "/api/session/data/test/userGroups/test-group/permissions",
+			update:   resourceUserGroupUpdate,
 		},
 		{
-			name:  "connections",
-			field: "connections",
-			old:   []interface{}{"old-connection"},
-			new:   []interface{}{"new-connection"},
+			name:     "group connections",
+			resource: guacamoleUserGroup(),
+			id:       "test-group",
+			field:    "connections",
+			old:      []interface{}{"old-connection"},
+			new:      []interface{}{"new-connection"},
 			want: []types.GuacPermissionItem{
 				{Op: "remove", Path: "/connectionPermissions/old-connection", Value: "READ"},
 				{Op: "add", Path: "/connectionPermissions/new-connection", Value: "READ"},
 			},
+			wantPath: "/api/session/data/test/userGroups/test-group/permissions",
+			update:   resourceUserGroupUpdate,
 		},
 		{
-			name:  "connection groups",
-			field: "connection_groups",
-			old:   []interface{}{"old-group"},
-			new:   []interface{}{"new-group"},
+			name:     "group connection groups",
+			resource: guacamoleUserGroup(),
+			id:       "test-group",
+			field:    "connection_groups",
+			old:      []interface{}{"old-group"},
+			new:      []interface{}{"new-group"},
 			want: []types.GuacPermissionItem{
 				{Op: "remove", Path: "/connectionGroupPermissions/old-group", Value: "READ"},
 				{Op: "add", Path: "/connectionGroupPermissions/new-group", Value: "READ"},
 			},
+			wantPath: "/api/session/data/test/userGroups/test-group/permissions",
+			update:   resourceUserGroupUpdate,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			path, items, err := runPermissionUpdate(t, guacamoleUserGroup(), "test-group", tc.field, tc.old, tc.new, resourceUserGroupUpdate)
+			path, items, err := runPermissionUpdate(t, tc.resource, tc.id, tc.field, tc.old, tc.new, tc.update)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if path != "/api/session/data/test/userGroups/test-group/permissions" {
-				t.Fatalf("permission patch path = %q", path)
+			if path != tc.wantPath {
+				t.Fatalf("permission patch path = %q, want %q", path, tc.wantPath)
 			}
 			if !reflect.DeepEqual(items, tc.want) {
 				t.Fatalf("permission patch = %#v, want %#v", items, tc.want)
