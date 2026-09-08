@@ -30,36 +30,59 @@ func TestProvider_impl(t *testing.T) {
 func TestCredentialSchemaFieldsAreSensitive(t *testing.T) {
 	provider := Provider()
 
-	assertSensitive := func(resource *schema.Resource, fields ...string) {
+	assertSensitive := func(kind string, resourceName string, resource *schema.Resource, fields []string) {
 		t.Helper()
+		if resource == nil {
+			t.Fatalf("%s %s is not registered", kind, resourceName)
+		}
 		parameters := resource.Schema["parameters"].Elem.(*schema.Resource).Schema
 		for _, field := range fields {
-			if !parameters[field].Sensitive {
-				t.Errorf("parameters.%s must be marked Sensitive", field)
+			schemaField, ok := parameters[field]
+			if !ok {
+				t.Errorf("%s %s has no parameters.%s field", kind, resourceName, field)
+			} else if !schemaField.Sensitive {
+				t.Errorf("%s %s parameters.%s must be marked Sensitive", kind, resourceName, field)
 			}
 		}
 	}
 
-	assertDataSourceSensitive := func(resource *schema.Resource, fields ...string) {
-		t.Helper()
-		parameters := resource.Schema["parameters"].Elem.(*schema.Resource).Schema
-		for _, field := range fields {
-			if !parameters[field].Sensitive {
-				t.Errorf("data source parameters.%s must be marked Sensitive", field)
-			}
-		}
+	type credentialSchema struct {
+		name           string
+		resourceFields []string
+		dataFields     []string
 	}
 
-	assertSensitive(provider.ResourcesMap["guacamole_connection_ssh"], "password", "private_key", "passphrase")
-	assertSensitive(provider.ResourcesMap["guacamole_connection_vnc"], "password", "sftp_password", "sftp_private_key", "sftp_passphrase")
-	assertSensitive(provider.ResourcesMap["guacamole_connection_rdp"], "password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase")
-	assertSensitive(provider.ResourcesMap["guacamole_connection_telnet"], "password")
-	assertSensitive(provider.ResourcesMap["guacamole_connection_kubernetes"], "client_cert", "client_key")
+	checks := []credentialSchema{
+		{
+			name:           "guacamole_connection_ssh",
+			resourceFields: []string{"password", "private_key", "passphrase"},
+			dataFields:     []string{"private_key", "passphrase"},
+		},
+		{
+			name:           "guacamole_connection_vnc",
+			resourceFields: []string{"password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+			dataFields:     []string{"password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		},
+		{
+			name:           "guacamole_connection_rdp",
+			resourceFields: []string{"password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+			dataFields:     []string{"password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		},
+		{
+			name:           "guacamole_connection_telnet",
+			resourceFields: []string{"password"},
+		},
+		{
+			name:           "guacamole_connection_kubernetes",
+			resourceFields: []string{"client_cert", "client_key"},
+			dataFields:     []string{"client_cert", "client_key"},
+		},
+	}
 
-	assertDataSourceSensitive(provider.DataSourcesMap["guacamole_connection_ssh"], "private_key", "passphrase")
-	assertDataSourceSensitive(provider.DataSourcesMap["guacamole_connection_vnc"], "password", "sftp_password", "sftp_private_key", "sftp_passphrase")
-	assertDataSourceSensitive(provider.DataSourcesMap["guacamole_connection_rdp"], "password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase")
-	assertDataSourceSensitive(provider.DataSourcesMap["guacamole_connection_kubernetes"], "client_cert", "client_key")
+	for _, check := range checks {
+		assertSensitive("resource", check.name, provider.ResourcesMap[check.name], check.resourceFields)
+		assertSensitive("data source", check.name, provider.DataSourcesMap[check.name], check.dataFields)
+	}
 }
 
 func testAccPreCheck(t *testing.T) {
