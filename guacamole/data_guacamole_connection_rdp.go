@@ -109,7 +109,12 @@ func dataSourceConnectionRDP() *schema.Resource {
 							Description: "Username for rdp connection",
 							Computed:    true,
 						},
-						"password": sensitiveComputedString("Password for rdp connection"),
+						"password": {
+							Type:        schema.TypeString,
+							Description: "Password for rdp connection",
+							Computed:    true,
+							Sensitive:   true,
+						},
 						"domain": {
 							Type:        schema.TypeString,
 							Description: "Domain name of rdp connection",
@@ -145,7 +150,12 @@ func dataSourceConnectionRDP() *schema.Resource {
 							Description: "RDS gateway username",
 							Computed:    true,
 						},
-						"gateway_password": sensitiveComputedString("RDS gateway password"),
+						"gateway_password": {
+							Type:        schema.TypeString,
+							Description: "RDS gateway password",
+							Computed:    true,
+							Sensitive:   true,
+						},
 						"gateway_domain": {
 							Type:        schema.TypeString,
 							Description: "RDS gateway domain",
@@ -411,9 +421,24 @@ func dataSourceConnectionRDP() *schema.Resource {
 							Description: "SFTP server username",
 							Computed:    true,
 						},
-						"sftp_password":    sensitiveComputedString("SFTP server password"),
-						"sftp_private_key": sensitiveComputedString("SFTP server private key"),
-						"sftp_passphrase":  sensitiveComputedString("SFTP server private key passphrase"),
+						"sftp_password": {
+							Type:        schema.TypeString,
+							Description: "SFTP server password",
+							Computed:    true,
+							Sensitive:   true,
+						},
+						"sftp_private_key": {
+							Type:        schema.TypeString,
+							Description: "SFTP server private key",
+							Computed:    true,
+							Sensitive:   true,
+						},
+						"sftp_passphrase": {
+							Type:        schema.TypeString,
+							Description: "SFTP server private key passphrase",
+							Computed:    true,
+							Sensitive:   true,
+						},
 						"sftp_upload_directory": {
 							Type:        schema.TypeString,
 							Description: "SFTP default upload directory",
