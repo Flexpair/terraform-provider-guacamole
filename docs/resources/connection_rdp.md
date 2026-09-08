@@ -64,7 +64,7 @@ resource "guacamole_connection_rdp" "rdp" {
 - `port` - (string) port
 #### *Authentication*
 - `username` - (string) username
-- `password` - (string, Sensitive) password
+- `password` - (string) password
 - `domain` - (string) active directory domain name
 - `security_mode` - (string) security mode.  Value should be on of:
   - `any`
@@ -78,7 +78,7 @@ resource "guacamole_connection_rdp" "rdp" {
 - `gateway_hostname` - (string) remote desktop gateway hostname
 - `gateway_port` - (string) remote desktop gateway port
 - `gateway_username` - (string) remote desktop gateway username
-- `gateway_password` - (string, Sensitive) RDS gateway password
+- `gateway_password` - (string) remote desktop gateway password
 - `gateway_domain` - (string) remote desktop gateway domain name
 - `initial_program` - (string) initial program
 - `client_name` - (string) client name
@@ -161,11 +161,11 @@ resource "guacamole_connection_rdp" "rdp" {
 - `sftp_enable` - (bool) enable SFTP
 - `sftp_hostname` - (string) hostname
 - `sftp_port` - (string) port
-- `sftp_host_key` - (string) OpenSSH `known_hosts` entry for the SFTP server
+- `sftp_host_key` - (string) public host key (Base64)
 - `sftp_username` - (string) username
-- `sftp_password` - (string, Sensitive) password
-- `sftp_private_key` - (string, Sensitive) private key
-- `sftp_passphrase` - (string, Sensitive) passphrase
+- `sftp_password` - (string) password
+- `sftp_private_key` - (string) private key
+- `sftp_passphrase` - (string) passphrase
 - `sftp_root_directory` - (string) file browser root directory
 - `sftp_upload_directory` - (string) default upload directory
 - `sftp_keepalive_interval` - (string) SFTP keepalive interval

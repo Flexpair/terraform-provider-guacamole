@@ -56,7 +56,7 @@ resource "guacamole_connection_vnc" "vnc" {
 - `port` - (string) port
 #### *Authentication*
 - `username` - (string) username
-- `password` - (string, Sensitive) password
+- `password` - (string) password
 #### *Display*
 - `readonly` - (bool) display is read-only
 - `swap_red_blue` - (bool) swap red/blue components
@@ -85,11 +85,11 @@ resource "guacamole_connection_vnc" "vnc" {
 - `sftp_enable` - (bool) enable SFTP
 - `sftp_hostname` - (string) hostname
 - `sftp_port` - (string) port
-- `sftp_host_key` - (string) OpenSSH `known_hosts` entry for the SFTP server
+- `sftp_host_key` - (string) public host key (Base64)
 - `sftp_username` - (string) username
-- `sftp_password` - (string, Sensitive) password
-- `sftp_private_key` - (string, Sensitive) private key
-- `sftp_passphrase` - (string, Sensitive) passphrase
+- `sftp_password` - (string) password
+- `sftp_private_key` - (string) private key
+- `sftp_passphrase` - (string) passphrase
 - `sftp_root_directory` - (string) file browser root directory
 - `sftp_upload_directory` - (string) default upload directory
 - `sftp_keepalive_interval` - (string) SFTP keepalive interval

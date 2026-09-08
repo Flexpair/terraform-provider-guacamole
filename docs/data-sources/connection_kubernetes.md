@@ -60,8 +60,8 @@ The following attributes are exported.
 - `pod` - (string)
 - `container` - (string)
 #### *Authentication*
-- `client_certificate` - (string, Sensitive) client certificate
-- `client_key` - (string, Sensitive) client key
+- `client_certificate` - (string) client certificate
+- `client_key` - (string) client key
 #### *Display*
 - `color_scheme` - (string) color scheme: Value should be on of:
   - `black-white`
