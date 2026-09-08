@@ -138,13 +138,11 @@ func dataSourceConnectionKubernetes() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "Client certificate",
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"client_key": {
 							Type:        schema.TypeString,
 							Description: "Client key",
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"color_scheme": {
 							Type:        schema.TypeString,

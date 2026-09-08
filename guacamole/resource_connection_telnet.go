@@ -122,7 +122,6 @@ func guacamoleConnectionTelnet() *schema.Resource {
 							Description: "Password for telnet connection",
 							Optional:    true,
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"username_regex": {
 							Type:        schema.TypeString,

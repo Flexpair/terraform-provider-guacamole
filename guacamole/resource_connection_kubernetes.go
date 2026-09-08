@@ -153,14 +153,12 @@ func guacamoleConnectionKubernetes() *schema.Resource {
 							Description: "Client certificate",
 							Optional:    true,
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"client_key": {
 							Type:        schema.TypeString,
 							Description: "Client key",
 							Optional:    true,
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"color_scheme": {
 							Type:        schema.TypeString,

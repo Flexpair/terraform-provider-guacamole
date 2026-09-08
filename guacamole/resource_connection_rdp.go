@@ -122,7 +122,6 @@ func guacamoleConnectionRDP() *schema.Resource {
 							Description: "Password for rdp connection",
 							Optional:    true,
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"domain": {
 							Type:        schema.TypeString,
@@ -171,7 +170,6 @@ func guacamoleConnectionRDP() *schema.Resource {
 							Description: "RDS gateway password",
 							Optional:    true,
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"gateway_domain": {
 							Type:        schema.TypeString,
@@ -496,21 +494,18 @@ func guacamoleConnectionRDP() *schema.Resource {
 							Description: "SFTP server password",
 							Optional:    true,
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"sftp_private_key": {
 							Type:        schema.TypeString,
 							Description: "SFTP server private key",
 							Optional:    true,
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"sftp_passphrase": {
 							Type:        schema.TypeString,
 							Description: "SFTP server private key passphrase",
 							Optional:    true,
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"sftp_upload_directory": {
 							Type:        schema.TypeString,

@@ -68,27 +68,53 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"guacamole_user":                  guacamoleUser(),
-			"guacamole_user_group":            guacamoleUserGroup(),
-			"guacamole_connection_ssh":        guacamoleConnectionSSH(),
-			"guacamole_connection_telnet":     guacamoleConnectionTelnet(),
-			"guacamole_connection_rdp":        guacamoleConnectionRDP(),
-			"guacamole_connection_vnc":        guacamoleConnectionVNC(),
-			"guacamole_connection_kubernetes": guacamoleConnectionKubernetes(),
-			"guacamole_connection_group":      guacamoleConnectionGroup(),
+			"guacamole_user":       guacamoleUser(),
+			"guacamole_user_group": guacamoleUserGroup(),
+			"guacamole_connection_ssh": markConnectionParametersSensitive(
+				guacamoleConnectionSSH(), "password", "private_key", "passphrase",
+			),
+			"guacamole_connection_telnet": markConnectionParametersSensitive(
+				guacamoleConnectionTelnet(), "password",
+			),
+			"guacamole_connection_rdp": markConnectionParametersSensitive(
+				guacamoleConnectionRDP(), "password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase",
+			),
+			"guacamole_connection_vnc": markConnectionParametersSensitive(
+				guacamoleConnectionVNC(), "password", "sftp_password", "sftp_private_key", "sftp_passphrase",
+			),
+			"guacamole_connection_kubernetes": markConnectionParametersSensitive(
+				guacamoleConnectionKubernetes(), "client_cert", "client_key",
+			),
+			"guacamole_connection_group": guacamoleConnectionGroup(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"guacamole_user":                  dataSourceUser(),
-			"guacamole_user_group":            dataSourceUserGroup(),
-			"guacamole_connection_ssh":        dataSourceConnectionSSH(),
-			"guacamole_connection_telnet":     dataSourceConnectionTelnet(),
-			"guacamole_connection_rdp":        dataSourceConnectionRDP(),
-			"guacamole_connection_vnc":        dataSourceConnectionVNC(),
-			"guacamole_connection_kubernetes": dataSourceConnectionKubernetes(),
-			"guacamole_connection_group":      dataSourceConnectionGroup(),
+			"guacamole_user":       dataSourceUser(),
+			"guacamole_user_group": dataSourceUserGroup(),
+			"guacamole_connection_ssh": markConnectionParametersSensitive(
+				dataSourceConnectionSSH(), "private_key", "passphrase",
+			),
+			"guacamole_connection_telnet": dataSourceConnectionTelnet(),
+			"guacamole_connection_rdp": markConnectionParametersSensitive(
+				dataSourceConnectionRDP(), "password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase",
+			),
+			"guacamole_connection_vnc": markConnectionParametersSensitive(
+				dataSourceConnectionVNC(), "password", "sftp_password", "sftp_private_key", "sftp_passphrase",
+			),
+			"guacamole_connection_kubernetes": markConnectionParametersSensitive(
+				dataSourceConnectionKubernetes(), "client_cert", "client_key",
+			),
+			"guacamole_connection_group": dataSourceConnectionGroup(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
+}
+
+func markConnectionParametersSensitive(resource *schema.Resource, fields ...string) *schema.Resource {
+	parameters := resource.Schema["parameters"].Elem.(*schema.Resource).Schema
+	for _, field := range fields {
+		parameters[field].Sensitive = true
+	}
+	return resource
 }
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

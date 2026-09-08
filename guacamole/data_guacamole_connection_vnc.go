@@ -114,7 +114,6 @@ func dataSourceConnectionVNC() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "Password for vnc connection",
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"readonly": {
 							Type:        schema.TypeBool,
@@ -225,19 +224,16 @@ func dataSourceConnectionVNC() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "SFTP server password",
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"sftp_private_key": {
 							Type:        schema.TypeString,
 							Description: "SFTP server private key",
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"sftp_passphrase": {
 							Type:        schema.TypeString,
 							Description: "SFTP server private key passphrase",
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"sftp_upload_directory": {
 							Type:        schema.TypeString,
