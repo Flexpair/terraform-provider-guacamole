@@ -27,11 +27,50 @@ func TestProvider_impl(t *testing.T) {
 	var _ *schema.Provider = Provider()
 }
 
-func TestVNCConnectionCredentialFieldsAreSensitive(t *testing.T) {
-	parameters := Provider().ResourcesMap["guacamole_connection_vnc"].Schema["parameters"].Elem.(*schema.Resource).Schema
-	for _, field := range []string{"password", "sftp_password", "sftp_private_key", "sftp_passphrase"} {
-		if !parameters[field].Sensitive {
-			t.Errorf("parameters.%s must be marked Sensitive", field)
+func TestConnectionCredentialFieldsAreSensitive(t *testing.T) {
+	resourceCredentialFields := map[string][]string{
+		"guacamole_connection_ssh":        {"password", "private_key", "passphrase"},
+		"guacamole_connection_telnet":     {},
+		"guacamole_connection_rdp":        {"password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		"guacamole_connection_vnc":        {"password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		"guacamole_connection_kubernetes": {"client_cert", "client_key"},
+	}
+	dataSourceCredentialFields := map[string][]string{
+		"guacamole_connection_ssh":        {"private_key", "passphrase"},
+		"guacamole_connection_rdp":        {"password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		"guacamole_connection_vnc":        {"password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		"guacamole_connection_kubernetes": {"client_cert", "client_key"},
+	}
+
+	for _, schemas := range []struct {
+		kind   string
+		fields map[string][]string
+		items  map[string]*schema.Resource
+	}{
+		{kind: "resource", fields: resourceCredentialFields, items: Provider().ResourcesMap},
+		{kind: "data source", fields: dataSourceCredentialFields, items: Provider().DataSourcesMap},
+	} {
+		for resourceName, fields := range schemas.fields {
+			resource, ok := schemas.items[resourceName]
+			if !ok {
+				t.Errorf("%s %s is not registered", schemas.kind, resourceName)
+				continue
+			}
+			parametersResource, ok := resource.Schema["parameters"].Elem.(*schema.Resource)
+			if !ok {
+				t.Errorf("%s %s parameters must be a nested resource", schemas.kind, resourceName)
+				continue
+			}
+			for _, field := range fields {
+				parameter, ok := parametersResource.Schema[field]
+				if !ok {
+					t.Errorf("%s %s parameters.%s is missing", schemas.kind, resourceName, field)
+					continue
+				}
+				if !parameter.Sensitive {
+					t.Errorf("%s %s parameters.%s must be marked Sensitive", schemas.kind, resourceName, field)
+				}
+			}
 		}
 	}
 }

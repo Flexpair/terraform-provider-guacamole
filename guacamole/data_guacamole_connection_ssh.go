@@ -118,11 +118,13 @@ func dataSourceConnectionSSH() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "Private key for ssh connection",
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"passphrase": {
 							Type:        schema.TypeString,
 							Description: "Private key passphrase",
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"color_scheme": {
 							Type:        schema.TypeString,

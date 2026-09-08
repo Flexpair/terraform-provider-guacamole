@@ -71,8 +71,8 @@ resource "guacamole_connection_kubernetes" "kubernetes" {
 - `pod` - (string)
 - `container` - (string)
 #### *Authentication*
-- `client_cert` - (string) client certificate
-- `client_key` - (string) client key
+- `client_cert` - (string, Sensitive) client certificate
+- `client_key` - (string, Sensitive) client key
 #### *Display*
 - `color_scheme` - (string) color scheme: Value should be on of:
   - `black-white`

@@ -113,6 +113,7 @@ func dataSourceConnectionRDP() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "Password for rdp connection",
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"domain": {
 							Type:        schema.TypeString,
@@ -153,6 +154,7 @@ func dataSourceConnectionRDP() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "RDS gateway password",
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"gateway_domain": {
 							Type:        schema.TypeString,
@@ -411,7 +413,7 @@ func dataSourceConnectionRDP() *schema.Resource {
 						},
 						"sftp_host_key": {
 							Type:        schema.TypeString,
-							Description: "SFTP server public host key (Base64)",
+							Description: "SFTP server OpenSSH known_hosts entry",
 							Computed:    true,
 						},
 						"sftp_username": {
@@ -423,16 +425,19 @@ func dataSourceConnectionRDP() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "SFTP server password",
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"sftp_private_key": {
 							Type:        schema.TypeString,
 							Description: "SFTP server private key",
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"sftp_passphrase": {
 							Type:        schema.TypeString,
 							Description: "SFTP server private key passphrase",
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"sftp_upload_directory": {
 							Type:        schema.TypeString,
