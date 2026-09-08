@@ -85,7 +85,7 @@ resource "guacamole_connection_vnc" "vnc" {
 - `sftp_enable` - (bool) enable SFTP
 - `sftp_hostname` - (string) hostname
 - `sftp_port` - (string) port
-- `sftp_host_key` - (string) public host key (Base64)
+- `sftp_host_key` - (string) OpenSSH `known_hosts` entry for the SFTP server
 - `sftp_username` - (string) username
 - `sftp_password` - (string, Sensitive) password
 - `sftp_private_key` - (string, Sensitive) private key
