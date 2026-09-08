@@ -152,11 +152,11 @@ The following attributes are exported.
 - `sftp_enable` - (bool) enable SFTP
 - `sftp_hostname` - (string) hostname
 - `sftp_port` - (string) port
-- `sftp_host_key` - (string) public host key (Base64)
+- `sftp_host_key` - (string) OpenSSH `known_hosts` entry for the SFTP server
 - `sftp_username` - (string) username
-- `sftp_password` - (string) password
-- `sftp_private_key` - (string) private key
-- `sftp_passphrase` - (string) passphrase
+- `sftp_password` - (string, Sensitive) password
+- `sftp_private_key` - (string, Sensitive) private key
+- `sftp_passphrase` - (string, Sensitive) passphrase
 - `sftp_root_directory` - (string) file browser root directory
 - `sftp_upload_directory` - (string) default upload directory
 - `sftp_keepalive_interval` - (string) SFTP keepalive interval

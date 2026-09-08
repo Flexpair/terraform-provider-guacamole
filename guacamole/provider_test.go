@@ -27,6 +27,41 @@ func TestProvider_impl(t *testing.T) {
 	var _ *schema.Provider = Provider()
 }
 
+func TestCredentialSchemaFieldsAreSensitive(t *testing.T) {
+	provider := Provider()
+
+	assertSensitive := func(resource *schema.Resource, fields ...string) {
+		t.Helper()
+		parameters := resource.Schema["parameters"].Elem.(*schema.Resource).Schema
+		for _, field := range fields {
+			if !parameters[field].Sensitive {
+				t.Errorf("parameters.%s must be marked Sensitive", field)
+			}
+		}
+	}
+
+	assertDataSourceSensitive := func(resource *schema.Resource, fields ...string) {
+		t.Helper()
+		parameters := resource.Schema["parameters"].Elem.(*schema.Resource).Schema
+		for _, field := range fields {
+			if !parameters[field].Sensitive {
+				t.Errorf("data source parameters.%s must be marked Sensitive", field)
+			}
+		}
+	}
+
+	assertSensitive(provider.ResourcesMap["guacamole_connection_ssh"], "password", "private_key", "passphrase")
+	assertSensitive(provider.ResourcesMap["guacamole_connection_vnc"], "password", "sftp_password", "sftp_private_key", "sftp_passphrase")
+	assertSensitive(provider.ResourcesMap["guacamole_connection_rdp"], "password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase")
+	assertSensitive(provider.ResourcesMap["guacamole_connection_telnet"], "password")
+	assertSensitive(provider.ResourcesMap["guacamole_connection_kubernetes"], "client_cert", "client_key")
+
+	assertDataSourceSensitive(provider.DataSourcesMap["guacamole_connection_ssh"], "private_key", "passphrase")
+	assertDataSourceSensitive(provider.DataSourcesMap["guacamole_connection_vnc"], "password", "sftp_password", "sftp_private_key", "sftp_passphrase")
+	assertDataSourceSensitive(provider.DataSourcesMap["guacamole_connection_rdp"], "password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase")
+	assertDataSourceSensitive(provider.DataSourcesMap["guacamole_connection_kubernetes"], "client_cert", "client_key")
+}
+
 func testAccPreCheck(t *testing.T) {
 	if os.Getenv("GUACAMOLE_URL") == "" {
 		t.Fatal("GUACAMOLE_URL must be set for acceptance tests")

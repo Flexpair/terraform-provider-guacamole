@@ -128,18 +128,21 @@ func guacamoleConnectionSSH() *schema.Resource {
 							Description: "Password for ssh connection",
 							Optional:    true,
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"private_key": {
 							Type:        schema.TypeString,
 							Description: "Private key for ssh connection",
 							Optional:    true,
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"passphrase": {
 							Type:        schema.TypeString,
 							Description: "Private key passphrase",
 							Optional:    true,
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"color_scheme": {
 							Type:        schema.TypeString,

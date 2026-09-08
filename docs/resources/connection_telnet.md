@@ -58,7 +58,7 @@ resource "guacamole_connection_telnet" "telnet" {
 - `port` - (string) port
 #### *Authentication*
 - `username` - (string) username
-- `password` - (string) password
+- `password` - (string, Sensitive) password
 - `username_regex` - (string) username regular expression
 - `password_regex` - (string) password regular expression
 - `login_success_regex` - (string) login success regular expression

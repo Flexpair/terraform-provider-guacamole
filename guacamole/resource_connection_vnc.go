@@ -122,6 +122,7 @@ func guacamoleConnectionVNC() *schema.Resource {
 							Description: "Password for vnc connection",
 							Optional:    true,
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"readonly": {
 							Type:        schema.TypeBool,
@@ -254,18 +255,21 @@ func guacamoleConnectionVNC() *schema.Resource {
 							Description: "SFTP server password",
 							Optional:    true,
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"sftp_private_key": {
 							Type:        schema.TypeString,
 							Description: "SFTP server private key",
 							Optional:    true,
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"sftp_passphrase": {
 							Type:        schema.TypeString,
 							Description: "SFTP server private key passphrase",
 							Optional:    true,
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"sftp_upload_directory": {
 							Type:        schema.TypeString,
