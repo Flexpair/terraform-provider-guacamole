@@ -27,6 +27,15 @@ func TestProvider_impl(t *testing.T) {
 	var _ *schema.Provider = Provider()
 }
 
+func TestVNCConnectionCredentialFieldsAreSensitive(t *testing.T) {
+	parameters := Provider().ResourcesMap["guacamole_connection_vnc"].Schema["parameters"].Elem.(*schema.Resource).Schema
+	for _, field := range []string{"password", "sftp_password", "sftp_private_key", "sftp_passphrase"} {
+		if !parameters[field].Sensitive {
+			t.Errorf("parameters.%s must be marked Sensitive", field)
+		}
+	}
+}
+
 func testAccPreCheck(t *testing.T) {
 	if os.Getenv("GUACAMOLE_URL") == "" {
 		t.Fatal("GUACAMOLE_URL must be set for acceptance tests")
