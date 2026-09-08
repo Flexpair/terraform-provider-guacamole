@@ -213,7 +213,7 @@ func dataSourceConnectionVNC() *schema.Resource {
 						},
 						"sftp_host_key": {
 							Type:        schema.TypeString,
-							Description: "SFTP server public host key (Base64)",
+							Description: "SFTP server OpenSSH known_hosts entry",
 							Computed:    true,
 						},
 						"sftp_username": {
