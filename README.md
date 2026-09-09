@@ -20,6 +20,15 @@ The fork introduces lazy initialization to solve this, plus several bug fixes di
 | v2.3.0 | Empty URL handling for Stacks (fixes multi-wave plan failures) |
 | v2.3.2 | Longer 15-second Guacamole connection polling window (~30 minutes) |
 | v2.4.0 | Idempotent CRUD: missing resources recreate instead of erroring (fixes gateway-replacement applies) |
+| v2.5.1 | Marks connection credentials as Sensitive in resources and data sources |
+
+## Credential handling
+
+Connection passwords, private keys, passphrases, client certificates, and client keys are marked
+`Sensitive` in the Terraform schema. Terraform redacts them from normal plan and output display,
+but `Sensitive` does not remove values from Terraform state. Use an encrypted, access-controlled
+Terraform or HCP Terraform state backend and protect state snapshots and plan artifacts accordingly.
+The provider does not claim write-only storage for these fields.
 
 ## Commits (oldest → newest)
 

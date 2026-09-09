@@ -57,8 +57,8 @@ The following attributes are exported.
 - `public_host_key` - (string) public host key
 #### *Authentication*
 - `username` - (string) username
-- `private_key` - (string) private key
-- `passphrase` - (string) passphrase (if required by key)
+- `private_key` - (string, Sensitive) private key
+- `passphrase` - (string, Sensitive) passphrase (if required by key)
 #### *Display*
 - `color_scheme` - (string) color scheme: Value should be on of:
   - `black-white`

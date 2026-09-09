@@ -27,6 +27,51 @@ func TestProvider_impl(t *testing.T) {
 	var _ *schema.Provider = Provider()
 }
 
+func TestConnectionCredentialFieldsAreSensitive(t *testing.T) {
+	resourceCredentialFields := map[string][]string{
+		"guacamole_connection_ssh":        {"password", "private_key", "passphrase"},
+		"guacamole_connection_telnet":     {"password"},
+		"guacamole_connection_rdp":        {"password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		"guacamole_connection_vnc":        {"password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		"guacamole_connection_kubernetes": {"client_cert", "client_key"},
+	}
+	dataSourceCredentialFields := map[string][]string{
+		"guacamole_connection_ssh":        {"private_key", "passphrase"},
+		"guacamole_connection_rdp":        {"password", "gateway_password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		"guacamole_connection_vnc":        {"password", "sftp_password", "sftp_private_key", "sftp_passphrase"},
+		"guacamole_connection_kubernetes": {"client_cert", "client_key"},
+	}
+
+	assertSensitiveFields(t, "resource", Provider().ResourcesMap, resourceCredentialFields)
+	assertSensitiveFields(t, "data source", Provider().DataSourcesMap, dataSourceCredentialFields)
+}
+
+func assertSensitiveFields(t *testing.T, kind string, resources map[string]*schema.Resource, expected map[string][]string) {
+	t.Helper()
+	for resourceName, fields := range expected {
+		resource, ok := resources[resourceName]
+		if !ok {
+			t.Errorf("%s %s is not registered", kind, resourceName)
+			continue
+		}
+		parametersResource, ok := resource.Schema["parameters"].Elem.(*schema.Resource)
+		if !ok {
+			t.Errorf("%s %s parameters must be a nested resource", kind, resourceName)
+			continue
+		}
+		for _, field := range fields {
+			parameter, ok := parametersResource.Schema[field]
+			if !ok {
+				t.Errorf("%s %s parameters.%s is missing", kind, resourceName, field)
+				continue
+			}
+			if !parameter.Sensitive {
+				t.Errorf("%s %s parameters.%s must be marked Sensitive", kind, resourceName, field)
+			}
+		}
+	}
+}
+
 func testAccPreCheck(t *testing.T) {
 	if os.Getenv("GUACAMOLE_URL") == "" {
 		t.Fatal("GUACAMOLE_URL must be set for acceptance tests")

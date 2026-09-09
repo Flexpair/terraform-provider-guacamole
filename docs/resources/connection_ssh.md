@@ -64,9 +64,9 @@ resource "guacamole_connection_ssh" "ssh" {
 - `public_host_key` - (string) public host key
 #### *Authentication*
 - `username` - (string) username
-- `password` - (string) password
-- `private_key` - (string) private key
-- `passphrase` - (string) passphrase (if required by key)
+- `password` - (string, Sensitive) password
+- `private_key` - (string, Sensitive) private key
+- `passphrase` - (string, Sensitive) passphrase (if required by key)
 #### *Display*
 - `color_scheme` - (string) color scheme: Value should be on of:
   - `black-white`
