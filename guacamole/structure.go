@@ -10,10 +10,24 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
 const invalidEntrySummary = "Invalid entry"
+
+func planValidatedFontSizeSchema() *schema.Schema {
+	var parameters types.GuacConnectionParameters
+	return &schema.Schema{
+		Type:             schema.TypeString,
+		Description:      "Display font size",
+		Optional:         true,
+		Computed:         true,
+		ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(parameters.ValidFontSizes(), false)),
+	}
+}
 
 func stringToBool(v string) bool {
 	if v == "" {

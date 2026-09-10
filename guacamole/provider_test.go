@@ -27,6 +27,29 @@ func TestProvider_impl(t *testing.T) {
 	var _ *schema.Provider = Provider()
 }
 
+func TestConnectionFontSizeIsValidatedBySchema(t *testing.T) {
+	for _, resourceName := range []string{
+		"guacamole_connection_ssh",
+		"guacamole_connection_telnet",
+		"guacamole_connection_kubernetes",
+	} {
+		resource := Provider().ResourcesMap[resourceName]
+		parameters := resource.Schema["parameters"].Elem.(*schema.Resource)
+		fontSize := parameters.Schema["font_size"]
+		if fontSize.ValidateDiagFunc == nil {
+			t.Errorf("resource %s parameters.font_size must validate during planning", resourceName)
+			continue
+		}
+
+		if diags := fontSize.ValidateDiagFunc("12", nil); len(diags) != 0 {
+			t.Errorf("resource %s rejected supported font size 12: %#v", resourceName, diags)
+		}
+		if diags := fontSize.ValidateDiagFunc("13", nil); !diags.HasError() {
+			t.Errorf("resource %s accepted unsupported font size 13", resourceName)
+		}
+	}
+}
+
 func TestConnectionCredentialFieldsAreSensitive(t *testing.T) {
 	resourceCredentialFields := map[string][]string{
 		"guacamole_connection_ssh":        {"password", "private_key", "passphrase"},
