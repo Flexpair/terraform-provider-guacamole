@@ -29,27 +29,27 @@ func TestProvider_impl(t *testing.T) {
 
 func TestConnectionFontSizeIsValidatedBySchema(t *testing.T) {
 	provider := Provider()
-	for _, resourceName := range []string{
-		"guacamole_connection_ssh",
-		"guacamole_connection_telnet",
-		"guacamole_connection_kubernetes",
-	} {
-		resource := provider.ResourcesMap[resourceName]
+	resources := []*schema.Resource{
+		provider.ResourcesMap["guacamole_connection_ssh"],
+		provider.ResourcesMap["guacamole_connection_telnet"],
+		provider.ResourcesMap["guacamole_connection_kubernetes"],
+	}
+	for _, resource := range resources {
 		parameters := resource.Schema["parameters"].Elem.(*schema.Resource)
 		fontSize := parameters.Schema["font_size"]
 		if fontSize.ValidateDiagFunc == nil {
-			t.Errorf("resource %s parameters.font_size must validate during planning", resourceName)
+			t.Error("parameters.font_size must validate during planning")
 			continue
 		}
 
 		if diags := fontSize.ValidateDiagFunc("", nil); len(diags) != 0 {
-			t.Errorf("resource %s rejected an empty font size: %#v", resourceName, diags)
+			t.Errorf("rejected an empty font size: %#v", diags)
 		}
 		if diags := fontSize.ValidateDiagFunc("12", nil); len(diags) != 0 {
-			t.Errorf("resource %s rejected supported font size 12: %#v", resourceName, diags)
+			t.Errorf("rejected supported font size 12: %#v", diags)
 		}
 		if diags := fontSize.ValidateDiagFunc("13", nil); !diags.HasError() {
-			t.Errorf("resource %s accepted unsupported font size 13", resourceName)
+			t.Error("accepted unsupported font size 13")
 		}
 	}
 }
