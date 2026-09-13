@@ -20,12 +20,13 @@ const invalidEntrySummary = "Invalid entry"
 
 func planValidatedFontSizeSchema() *schema.Schema {
 	var parameters types.GuacConnectionParameters
+	validFontSizes := append([]string{""}, parameters.ValidFontSizes()...)
 	return &schema.Schema{
 		Type:             schema.TypeString,
 		Description:      "Display font size",
 		Optional:         true,
 		Computed:         true,
-		ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(parameters.ValidFontSizes(), false)),
+		ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(validFontSizes, false)),
 	}
 }
 
