@@ -159,7 +159,7 @@ func guacamoleConnectionTelnet() *schema.Resource {
 							Optional:    true,
 							Computed:    true,
 						},
-						"font_size": planValidatedFontSizeSchema(), //nolint:dupl // shared schema field across connection resources
+						"font_size": planValidatedFontSizeSchema(),
 						"max_scrollback_size": {
 							Type:        schema.TypeString,
 							Description: "Display maximum scrollback",
