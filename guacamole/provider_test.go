@@ -28,12 +28,13 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func TestConnectionFontSizeIsValidatedBySchema(t *testing.T) {
+	provider := Provider()
 	for _, resourceName := range []string{
 		"guacamole_connection_ssh",
 		"guacamole_connection_telnet",
 		"guacamole_connection_kubernetes",
 	} {
-		resource := Provider().ResourcesMap[resourceName]
+		resource := provider.ResourcesMap[resourceName]
 		parameters := resource.Schema["parameters"].Elem.(*schema.Resource)
 		fontSize := parameters.Schema["font_size"]
 		if fontSize.ValidateDiagFunc == nil {
