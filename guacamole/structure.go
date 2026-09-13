@@ -10,10 +10,41 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
 const invalidEntrySummary = "Invalid entry"
+
+func validateFontSize(value interface{}, key string) ([]string, []error) {
+	var parameters types.GuacConnectionParameters
+	validFontSizes := parameters.ValidFontSizes()
+
+	if value.(string) == "" {
+		return nil, nil
+	}
+	return validation.StringInSlice(validFontSizes, false)(value, key)
+}
+
+func applyFontSizeValidation(resource *schema.Resource) *schema.Resource {
+	parametersField, ok := resource.Schema["parameters"]
+	if !ok {
+		return resource
+	}
+
+	parameters, ok := parametersField.Elem.(*schema.Resource)
+	if !ok {
+		return resource
+	}
+
+	fontSize, ok := parameters.Schema["font_size"]
+	if ok {
+		fontSize.ValidateDiagFunc = validation.ToDiagFunc(validateFontSize)
+	}
+	return resource
+}
 
 func stringToBool(v string) bool {
 	if v == "" {
