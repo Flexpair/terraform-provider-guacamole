@@ -153,7 +153,7 @@ func guacamoleConnectionSSH() *schema.Resource {
 							Optional:    true,
 							Computed:    true,
 						},
-						"font_size": planValidatedFontSizeSchema(),
+						"font_size": planValidatedFontSizeSchema(), //nolint:dupl // shared schema field across connection resources
 						"max_scrollback_size": {
 							Type:        schema.TypeString,
 							Description: "Display maximum scrollback",
