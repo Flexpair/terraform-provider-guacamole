@@ -18,16 +18,6 @@ import (
 
 const invalidEntrySummary = "Invalid entry"
 
-func planValidatedFontSizeSchema() *schema.Schema {
-	return &schema.Schema{
-		Type:             schema.TypeString,
-		Description:      "Display font size",
-		Optional:         true,
-		Computed:         true,
-		ValidateDiagFunc: validation.ToDiagFunc(validateFontSize),
-	}
-}
-
 func validateFontSize(value interface{}, key string) ([]string, []error) {
 	var parameters types.GuacConnectionParameters
 	validFontSizes := parameters.ValidFontSizes()
@@ -36,6 +26,24 @@ func validateFontSize(value interface{}, key string) ([]string, []error) {
 		return nil, nil
 	}
 	return validation.StringInSlice(validFontSizes, false)(value, key)
+}
+
+func applyFontSizeValidation(resource *schema.Resource) *schema.Resource {
+	parametersField, ok := resource.Schema["parameters"]
+	if !ok {
+		return resource
+	}
+
+	parameters, ok := parametersField.Elem.(*schema.Resource)
+	if !ok {
+		return resource
+	}
+
+	fontSize, ok := parameters.Schema["font_size"]
+	if ok {
+		fontSize.ValidateDiagFunc = validation.ToDiagFunc(validateFontSize)
+	}
+	return resource
 }
 
 func stringToBool(v string) bool {

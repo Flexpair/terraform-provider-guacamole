@@ -156,6 +156,8 @@ func connectionSchemas(dataSource bool) map[string]*schema.Resource {
 		if dataSource {
 			resource = definition.dataSource()
 			fields = definition.dataSourceFields
+		} else {
+			resource = applyFontSizeValidation(resource)
 		}
 		result[definition.name] = markConnectionParametersSensitive(resource, fields...)
 	}
