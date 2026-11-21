@@ -23,6 +23,23 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Check formatting
+        run: |
+          unformatted="$(gofmt -l guacamole/*.go main.go)"
+          if [ -n "$unformatted" ]; then
+            echo "The following files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Verify vendored library patches
+        run: |
+          bash scripts/restore-vendored-guacamole-patches.sh
+          git diff --exit-code -- vendor/
+
       - name: Run Go tests
         run: go test -v ./...
 
