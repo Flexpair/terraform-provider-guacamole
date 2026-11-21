@@ -118,11 +118,11 @@ var connectionSchemaDefinitions = []connectionSchemaDefinition{
 		decorate:         func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, sshValidationSpec()) },
 	},
 	{
-		name:             "guacamole_connection_telnet",
-		resource:         guacamoleConnectionTelnet,
-		dataSource:       dataSourceConnectionTelnet,
-		resourceFields:   []string{"password"},
-		decorate:         func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, telnetValidationSpec()) },
+		name:           "guacamole_connection_telnet",
+		resource:       guacamoleConnectionTelnet,
+		dataSource:     dataSourceConnectionTelnet,
+		resourceFields: []string{"password"},
+		decorate:       func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, telnetValidationSpec()) },
 	},
 	{
 		name:             "guacamole_connection_rdp",
@@ -146,7 +146,9 @@ var connectionSchemaDefinitions = []connectionSchemaDefinition{
 		dataSource:       dataSourceConnectionKubernetes,
 		resourceFields:   kubernetesCredentialFields,
 		dataSourceFields: kubernetesCredentialFields,
-		decorate:         func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, kubernetesValidationSpec()) },
+		decorate: func(r *schema.Resource) *schema.Resource {
+			return applyConnectionValidation(r, kubernetesValidationSpec())
+		},
 	},
 	{
 		name:       "guacamole_connection_group",

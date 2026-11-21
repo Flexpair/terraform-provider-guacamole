@@ -249,4 +249,3 @@ func convertGuacConnectionGroupToResourceData(d *schema.ResourceData, group *typ
 
 	return nil
 }
-
