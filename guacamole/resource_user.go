@@ -67,7 +67,7 @@ func guacamoleUser() *schema.Resource {
 							Type:        schema.TypeBool,
 							Description: "Whether the user is expired",
 							Optional:    true,
-							Computed:    false,
+							Computed:    true,
 						},
 						"timezone": {
 							Type:        schema.TypeString,
@@ -263,7 +263,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 		return diags
 	}
 
-	if d.HasChanges("username", "password", "last_active", "attributes") {
+	if d.HasChanges("password", "attributes") {
 		check := validateUser(d)
 		if check.HasError() {
 			return check
