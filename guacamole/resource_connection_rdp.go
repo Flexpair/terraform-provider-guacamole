@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -606,7 +605,7 @@ func resourceConnectionRDPCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	// Warning or errors can be collected in a slice type
 
-	validate := validateConnectionRDP(d, client)
+	validate := validateConnectionRDP(d)
 
 	if validate.HasError() {
 		return validate
@@ -643,7 +642,7 @@ func resourceConnectionRDPUpdate(ctx context.Context, d *schema.ResourceData, m 
 	// Warning or errors can be collected in a slice type
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "attributes", "parameters") {
-		validate := validateConnectionRDP(d, client)
+		validate := validateConnectionRDP(d)
 
 		if validate.HasError() {
 			return validate
@@ -801,45 +800,6 @@ func convertGuacConnectionRDPToResourceData(d *schema.ResourceData, connection *
 	d.Set("parameters", parameterList)
 
 	return diags
-}
-
-func validateConnectionRDP(d *schema.ResourceData, _ *guac.Client) diag.Diagnostics {
-	var diags diag.Diagnostics
-	var parameterInterface types.GuacConnectionParameters
-	var attributeInterface types.GuacConnectionAttributes
-	restrictedValueAttributes := map[string][]string{
-		"guacd_encryption": attributeInterface.ValidEncryptionTypes(),
-	}
-	attributeList := d.Get("attributes").([]interface{})
-	if len(attributeList) > 0 {
-		diags = append(diags, validateStringFields(attributeList, []string{
-			"guacd_port", "weight", "max_connections", "max_connections_per_user",
-		}, restrictedValueAttributes, "attribute")...)
-	}
-
-	parameterList := d.Get("parameters").([]interface{})
-	if len(parameterList) == 0 {
-		return diags
-	}
-	parameters := parameterList[0].(map[string]interface{})
-	parameterDiagnostics := validateStringFields([]interface{}{parameters}, []string{
-		"port",
-		"gateway_port",
-		"width",
-		"height",
-		"dpi",
-		"preconnection_id",
-		"sftp_port",
-		"sftp_keepalive_interval",
-		"wol_boot_wait_time",
-	}, map[string][]string{
-		"security_mode":   parameterInterface.ValidSecurityModes(),
-		"keyboard_layout": parameterInterface.ValidKeyboardLayouts(),
-		"color_depth":     parameterInterface.ValidColorDepths(),
-		"resize_method":   parameterInterface.ValidResizeMethods(),
-	}, "parameter")
-	diags = append(diags, parameterDiagnostics...)
-	return append(diags, validateTimezone(parameterList, "timezone")...)
 }
 
 func convertResourceDataToGuacConnectionRDP(d *schema.ResourceData) (types.GuacConnection, diag.Diagnostics) {

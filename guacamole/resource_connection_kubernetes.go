@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -301,7 +300,7 @@ func resourceConnectionKubernetesCreate(ctx context.Context, d *schema.ResourceD
 
 	// Warning or errors can be collected in a slice type
 
-	validate := validateConnectionKubernetes(d, client)
+	validate := validateConnectionKubernetes(d)
 
 	if validate.HasError() {
 		return validate
@@ -338,7 +337,7 @@ func resourceConnectionKubernetesUpdate(ctx context.Context, d *schema.ResourceD
 	// Warning or errors can be collected in a slice type
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "attributes", "parameters") {
-		validate := validateConnectionKubernetes(d, client)
+		validate := validateConnectionKubernetes(d)
 
 		if validate.HasError() {
 			return validate
@@ -445,20 +444,6 @@ func convertGuacConnectionKubernetesToResourceData(d *schema.ResourceData, conne
 	d.Set("parameters", parameterList)
 
 	return diags
-}
-
-func validateConnectionKubernetes(d *schema.ResourceData, client *guac.Client) diag.Diagnostics {
-	var attributeInterface types.GuacConnectionAttributes
-	var parameterInterface types.GuacConnectionParameters
-	attributeDiagnostics := validateStringFields(d.Get("attributes").([]interface{}), []string{"guacd_port", "weight", "max_connections", "max_connections_per_user"}, map[string][]string{
-		"guacd_encryption": attributeInterface.ValidEncryptionTypes(),
-	}, "attribute")
-	parameterDiagnostics := validateStringFields(d.Get("parameters").([]interface{}), []string{"port", "max_scrollback_size"}, map[string][]string{
-		"color_scheme": parameterInterface.ValidColorSchemes(),
-		"font_size":    parameterInterface.ValidFontSizes(),
-		"backspace":    parameterInterface.ValidBackspaceCodes(),
-	}, "parameter")
-	return append(attributeDiagnostics, parameterDiagnostics...)
 }
 
 func convertResourceDataToGuacConnectionKubernetes(d *schema.ResourceData) (types.GuacConnection, diag.Diagnostics) {

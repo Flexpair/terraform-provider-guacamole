@@ -10,41 +10,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
 const invalidEntrySummary = "Invalid entry"
-
-func validateFontSize(value interface{}, key string) ([]string, []error) {
-	var parameters types.GuacConnectionParameters
-	validFontSizes := parameters.ValidFontSizes()
-
-	if value.(string) == "" {
-		return nil, nil
-	}
-	return validation.StringInSlice(validFontSizes, false)(value, key)
-}
-
-func applyFontSizeValidation(resource *schema.Resource) *schema.Resource {
-	parametersField, ok := resource.Schema["parameters"]
-	if !ok {
-		return resource
-	}
-
-	parameters, ok := parametersField.Elem.(*schema.Resource)
-	if !ok {
-		return resource
-	}
-
-	fontSize, ok := parameters.Schema["font_size"]
-	if ok {
-		fontSize.ValidateDiagFunc = validation.ToDiagFunc(validateFontSize)
-	}
-	return resource
-}
 
 func stringToBool(v string) bool {
 	if v == "" {
@@ -227,10 +196,10 @@ func sortSliceBySlice(slice1, slice2 []string) []string {
 }
 
 func toHclString(value interface{}, isNested bool) string {
-	// Ideally, we'd use a type switch here to identify slices and maps, but we can't do that, because Go doesn't
-	// support generics, and the type switch only matches concrete types. So we could match []interface{}, but if
-	// a user passes in []string{}, that would NOT match (the same logic applies to maps). Therefore, we have to
-	// use reflection and manually convert into []interface{} and map[string]interface{}.
+	// Reflection is used instead of a type switch because a type switch only
+	// matches concrete types: a caller passing []string{} or map[string]string
+	// would not match []interface{} or map[string]interface{}. The helpers below
+	// normalize any slice or string-keyed map into those generic shapes first.
 
 	if slice, isSlice := tryToConvertToGenericSlice(value); isSlice {
 		return sliceToHclString(slice)
@@ -241,9 +210,8 @@ func toHclString(value interface{}, isNested bool) string {
 	}
 }
 
-// Try to convert the given value to a generic slice. Return the slice and true if the underlying value itself was a
-// slice and an empty slice and false if it wasn't. This is necessary because Go is a shitty language that doesn't
-// have generics, nor useful utility methods built-in. For more info, see: http://stackoverflow.com/a/12754757/483528
+// tryToConvertToGenericSlice normalizes any slice value (for example []string)
+// into a generic []interface{}. It returns false when the value is not a slice.
 func tryToConvertToGenericSlice(value interface{}) ([]interface{}, bool) {
 	reflectValue := reflect.ValueOf(value)
 	if value == nil || reflectValue.Kind() != reflect.Slice {
@@ -259,9 +227,9 @@ func tryToConvertToGenericSlice(value interface{}) ([]interface{}, bool) {
 	return genericSlice, true
 }
 
-// Try to convert the given value to a generic map. Return the map and true if the underlying value itself was a
-// map and an empty map and false if it wasn't. This is necessary because Go is a shitty language that doesn't
-// have generics, nor useful utility methods built-in. For more info, see: http://stackoverflow.com/a/12754757/483528
+// tryToConvertToGenericMap normalizes any string-keyed map (for example
+// map[string]string) into a generic map[string]interface{}. It returns false
+// when the value is not a string-keyed map.
 func tryToConvertToGenericMap(value interface{}) (map[string]interface{}, bool) {
 	reflectValue := reflect.ValueOf(value)
 	if value == nil || reflectValue.Kind() != reflect.Map {

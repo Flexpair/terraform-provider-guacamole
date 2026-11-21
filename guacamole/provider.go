@@ -64,8 +64,9 @@ func Provider() *schema.Provider {
 				DefaultFunc:      schema.EnvDefaultFunc("GUACAMOLE_DATA_SOURCE", nil),
 			},
 			"cookies": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:      schema.TypeMap,
+				Optional:  true,
+				Sensitive: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -103,6 +104,8 @@ type connectionSchemaDefinition struct {
 	dataSource       func() *schema.Resource
 	resourceFields   []string
 	dataSourceFields []string
+	// decorate attaches plan-time schema validation to resource schemas.
+	decorate func(*schema.Resource) *schema.Resource
 }
 
 var connectionSchemaDefinitions = []connectionSchemaDefinition{
@@ -112,13 +115,14 @@ var connectionSchemaDefinitions = []connectionSchemaDefinition{
 		dataSource:       dataSourceConnectionSSH,
 		resourceFields:   sshResourceFields,
 		dataSourceFields: sshDataSourceFields,
+		decorate:         func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, sshValidationSpec()) },
 	},
 	{
 		name:             "guacamole_connection_telnet",
 		resource:         guacamoleConnectionTelnet,
 		dataSource:       dataSourceConnectionTelnet,
 		resourceFields:   []string{"password"},
-		dataSourceFields: nil,
+		decorate:         func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, telnetValidationSpec()) },
 	},
 	{
 		name:             "guacamole_connection_rdp",
@@ -126,6 +130,7 @@ var connectionSchemaDefinitions = []connectionSchemaDefinition{
 		dataSource:       dataSourceConnectionRDP,
 		resourceFields:   rdpCredentialFields,
 		dataSourceFields: rdpCredentialFields,
+		decorate:         func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, rdpValidationSpec()) },
 	},
 	{
 		name:             "guacamole_connection_vnc",
@@ -133,6 +138,7 @@ var connectionSchemaDefinitions = []connectionSchemaDefinition{
 		dataSource:       dataSourceConnectionVNC,
 		resourceFields:   vncCredentialFields,
 		dataSourceFields: vncCredentialFields,
+		decorate:         func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, vncValidationSpec()) },
 	},
 	{
 		name:             "guacamole_connection_kubernetes",
@@ -140,11 +146,13 @@ var connectionSchemaDefinitions = []connectionSchemaDefinition{
 		dataSource:       dataSourceConnectionKubernetes,
 		resourceFields:   kubernetesCredentialFields,
 		dataSourceFields: kubernetesCredentialFields,
+		decorate:         func(r *schema.Resource) *schema.Resource { return applyConnectionValidation(r, kubernetesValidationSpec()) },
 	},
 	{
 		name:       "guacamole_connection_group",
 		resource:   guacamoleConnectionGroup,
 		dataSource: dataSourceConnectionGroup,
+		decorate:   applyConnectionGroupValidation,
 	},
 }
 
@@ -156,8 +164,8 @@ func connectionSchemas(dataSource bool) map[string]*schema.Resource {
 		if dataSource {
 			resource = definition.dataSource()
 			fields = definition.dataSourceFields
-		} else {
-			resource = applyFontSizeValidation(resource)
+		} else if definition.decorate != nil {
+			resource = definition.decorate(resource)
 		}
 		result[definition.name] = markConnectionParametersSensitive(resource, fields...)
 	}

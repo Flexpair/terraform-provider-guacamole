@@ -2,13 +2,10 @@ package guacamole
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -91,7 +88,7 @@ func resourceConnectionGroupCreate(ctx context.Context, d *schema.ResourceData, 
 
 	// Warning or errors can be collected in a slice type
 
-	validate := validateConnectionGroup(d, client)
+	validate := validateConnectionGroup(d)
 
 	if validate.HasError() {
 		return validate
@@ -159,7 +156,7 @@ func resourceConnectionGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "type", "attributes") {
-		validate := validateConnectionGroup(d, client)
+		validate := validateConnectionGroup(d)
 
 		if validate.HasError() {
 			return validate
@@ -253,57 +250,3 @@ func convertGuacConnectionGroupToResourceData(d *schema.ResourceData, group *typ
 	return nil
 }
 
-func validateConnectionGroup(d *schema.ResourceData, client *guac.Client) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	connectionGroupInterface := types.GuacConnectionGroup{}
-	// validate connection group restricted values
-	connectionGroupRestricedValueParameters := map[string][]string{
-		"type": connectionGroupInterface.ValidTypes(),
-	}
-	// parameters that need be to forced to upper case
-	forceUpperCaseParameters := []string{
-		"type",
-	}
-
-	for k, v := range connectionGroupRestricedValueParameters {
-		var value string
-		capitalizationCheck := stringInSlice(forceUpperCaseParameters, []string{k})
-		if !capitalizationCheck.HasError() {
-			value = strings.ToUpper(d.Get(k).(string))
-		} else {
-			value = d.Get(k).(string)
-		}
-		check := stringInSlice(v, []string{value})
-		if check.HasError() {
-			diags = append(diags, check...)
-		}
-	}
-
-	// validate attributes
-	attributeList := d.Get("attributes").([]interface{})
-
-	stringIntAttributes := []string{
-		"max_connections",
-		"max_connections_per_user",
-	}
-
-	if len(attributeList) > 0 {
-		attributes := attributeList[0].(map[string]interface{})
-		// validate string integer values
-		for _, v := range stringIntAttributes {
-			if attributes[v].(string) != "" {
-				_, err := strconv.Atoi(attributes[v].(string))
-				if err != nil {
-					diags = append(diags, diag.Diagnostic{
-						Severity: diag.Error,
-						Summary:  "Invalid entry",
-						Detail:   fmt.Sprintf("Expected string integer for attribute key: %s but was unable to convert: %s to integer", v, attributes[v].(string)),
-					})
-				}
-			}
-		}
-	}
-
-	return diags
-}
