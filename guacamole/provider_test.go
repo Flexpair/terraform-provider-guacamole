@@ -1,6 +1,7 @@
 package guacamole
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -69,6 +70,7 @@ func TestConnectionPlanTimeValidationAttached(t *testing.T) {
 		{resourceName: "guacamole_connection_telnet", parameter: "terminal_type"},
 		{resourceName: "guacamole_connection_kubernetes", parameter: "backspace"},
 		{resourceName: "guacamole_connection_ssh", parameter: "port"},
+		{resourceName: "guacamole_connection_telnet", parameter: "max_scrollback_size"},
 		{resourceName: "guacamole_connection_rdp", parameter: "timezone"},
 	}
 	for _, tc := range cases {
@@ -108,6 +110,11 @@ func TestConnectionPlanTimeValidationAttached(t *testing.T) {
 	port := rdp.Schema["parameters"].Elem.(*schema.Resource).Schema["port"]
 	if diags := port.ValidateDiagFunc("not-a-port", nil); !diags.HasError() {
 		t.Error("accepted a non-integer port at plan time")
+	}
+	telnet := provider.ResourcesMap["guacamole_connection_telnet"]
+	maxScrollbackSize := telnet.Schema["parameters"].Elem.(*schema.Resource).Schema["max_scrollback_size"]
+	if diags := maxScrollbackSize.ValidateDiagFunc("not-an-integer", nil); !diags.HasError() {
+		t.Error("accepted a non-integer max_scrollback_size at plan time")
 	}
 	if diags := port.ValidateDiagFunc("3389", nil); len(diags) != 0 {
 		t.Errorf("rejected integer port 3389: %#v", diags)
@@ -226,14 +233,56 @@ func testAccCheckGuacamoleConnectionDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		switch {
 		case rs.Type == "guacamole_connection_group":
-			if _, err := client.ReadConnectionGroup(rs.Primary.ID); err == nil {
-				return fmt.Errorf("connection group %q still exists", rs.Primary.ID)
+			group, err := client.ReadConnectionGroup(rs.Primary.ID)
+			if err := checkDestroyedResource("connection group", rs.Primary.ID, group.Identifier, err); err != nil {
+				return err
 			}
 		case connectionResourceTypes[rs.Type]:
-			if _, err := client.ReadConnection(rs.Primary.ID); err == nil {
-				return fmt.Errorf("connection %q still exists", rs.Primary.ID)
+			connection, err := client.ReadConnection(rs.Primary.ID)
+			if err := checkDestroyedResource("connection", rs.Primary.ID, connection.Identifier, err); err != nil {
+				return err
 			}
 		}
 	}
 	return nil
+}
+
+func checkDestroyedResource(resourceType, identifier, returnedIdentifier string, err error) error {
+	if returnedIdentifier != "" {
+		return fmt.Errorf("%s %q still exists", resourceType, identifier)
+	}
+	if isNotFoundError(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("error checking %s %q during destroy: %w", resourceType, identifier, err)
+	}
+	return fmt.Errorf("read %s %q returned no identifier without a not-found error", resourceType, identifier)
+}
+
+func TestCheckDestroyedResource(t *testing.T) {
+	readError := errors.New("connection failed")
+	cases := []struct {
+		name               string
+		returnedIdentifier string
+		readError          error
+		wantError          bool
+	}{
+		{name: "present resource", returnedIdentifier: "returned-id", wantError: true},
+		{name: "present resource despite later read error", returnedIdentifier: "returned-id", readError: readError, wantError: true},
+		{name: "not found", readError: errors.New("failed with status code 404"), wantError: false},
+		{name: "other read error", readError: readError, wantError: true},
+		{name: "empty response without not found", wantError: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := checkDestroyedResource("connection", "requested-id", tc.returnedIdentifier, tc.readError)
+			if (err != nil) != tc.wantError {
+				t.Fatalf("checkDestroyedResource() error = %v, wantError %t", err, tc.wantError)
+			}
+			if tc.name == "other read error" && !errors.Is(err, readError) {
+				t.Errorf("checkDestroyedResource() error = %v, want wrapped read error", err)
+			}
+		})
+	}
 }

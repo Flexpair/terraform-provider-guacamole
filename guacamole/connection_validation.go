@@ -82,7 +82,7 @@ func telnetValidationSpec() connectionValidationSpec {
 			"guacd_encryption": attributeInterface.ValidEncryptionTypes(),
 		},
 		parameterIntegers: []string{
-			"port", "wol_boot_wait_time",
+			"port", "max_scrollback_size", "wol_boot_wait_time",
 		},
 		restrictedParameters: map[string][]string{
 			"color_scheme":  parameterInterface.ValidColorSchemes(),

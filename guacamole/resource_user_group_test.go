@@ -45,8 +45,9 @@ func testAccCheckGuacamoleUserGroupDestroy(s *terraform.State) error {
 
 		identifier := rs.Primary.ID
 
-		if _, err := c.ReadUserGroup(identifier); err == nil {
-			return fmt.Errorf("user group %s still exists in guacamole database", identifier)
+		group, err := c.ReadUserGroup(identifier)
+		if err := checkDestroyedResource("user group", identifier, group.Identifier, err); err != nil {
+			return err
 		}
 	}
 
