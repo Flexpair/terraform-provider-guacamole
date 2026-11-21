@@ -30,7 +30,8 @@ jobs:
             echo "The following files need gofmt:"
             echo "$unformatted"
             for f in $unformatted; do
-              echo "::error file=$f::needs gofmt (run 'gofmt -w $f')"
+              diff="$(gofmt -d "$f" | python3 -c 'import sys; print(sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"), end="")')"
+              echo "::error file=$f,title=gofmt::the following gofmt changes are required: $diff"
             done
             exit 1
           fi
