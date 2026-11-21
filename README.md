@@ -22,6 +22,30 @@ The fork introduces lazy initialization to solve this, plus several bug fixes di
 | v2.4.0 | Idempotent CRUD: missing resources recreate instead of erroring (fixes gateway-replacement applies) |
 | v2.5.1 | Marks connection credentials as Sensitive in resources and data sources |
 
+## Usage
+
+```terraform
+terraform {
+  required_providers {
+    guacamole = {
+      source  = "app.terraform.io/Flexpair/guacamole"
+      version = "~> 2.0"
+    }
+  }
+}
+
+provider "guacamole" {
+  url      = var.guacamole_url
+  username = var.guacamole_username
+  password = var.guacamole_password
+}
+```
+
+Provider configuration can also come from the `GUACAMOLE_URL`, `GUACAMOLE_USERNAME`,
+`GUACAMOLE_PASSWORD`, `GUACAMOLE_TOKEN`, and `GUACAMOLE_DATA_SOURCE` environment variables.
+Token-based authentication (dual-factor), cookies, and TLS options are documented in
+[`docs/index.md`](docs/index.md).
+
 ## Credential handling
 
 Connection passwords, private keys, passphrases, client certificates, and client keys are marked

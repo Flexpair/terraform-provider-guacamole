@@ -99,7 +99,7 @@ func dataSourceUser() *schema.Resource {
 			"connections": {
 				Type:        schema.TypeSet,
 				Description: "Connections identifiers a user has permission to read",
-				Optional:    true,
+				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -107,7 +107,7 @@ func dataSourceUser() *schema.Resource {
 			"connection_groups": {
 				Type:        schema.TypeSet,
 				Description: "Connection Group identifiers a user has permission to read",
-				Optional:    true,
+				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -145,12 +145,11 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	err = convertGuacUserToResourceData(d, &user)
-
-	d.Set("group_membership", groups)
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	d.Set("group_membership", groups)
 
 	permissions, err := client.GetUserPermissions(username)
 

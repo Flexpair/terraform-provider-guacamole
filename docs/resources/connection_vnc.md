@@ -34,7 +34,7 @@ resource "guacamole_connection_vnc" "vnc" {
 ### Base
 
 - `name` -  (string, Required) Name of the connection
-- `parent_identifier` -  (string, Required) Numeric identifier of the parent connection
+- `parent_identifier` -  (string, Optional) Numeric identifier of the parent connection or connection group. Defaults to `ROOT`
 
 
 ### Attributes

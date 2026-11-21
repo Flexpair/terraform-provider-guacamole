@@ -32,7 +32,7 @@ func dataSourceUserGroup() *schema.Resource {
 			},
 			"parent_groups": {
 				Type:        schema.TypeSet,
-				Description: "Member groups of a guacamole user group",
+				Description: "Parent groups of a guacamole user group",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -56,7 +56,7 @@ func dataSourceUserGroup() *schema.Resource {
 			},
 			"system_permissions": {
 				Type:        schema.TypeSet,
-				Description: "Member users of a guacamole user group",
+				Description: "System permissions assigned to the user group",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -65,7 +65,7 @@ func dataSourceUserGroup() *schema.Resource {
 			"connections": {
 				Type:        schema.TypeSet,
 				Description: "Connections identifiers a user has permission to read",
-				Optional:    true,
+				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -73,7 +73,7 @@ func dataSourceUserGroup() *schema.Resource {
 			"connection_groups": {
 				Type:        schema.TypeSet,
 				Description: "Connection Group identifiers a user has permission to read",
-				Optional:    true,
+				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

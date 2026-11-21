@@ -37,11 +37,15 @@ resource "guacamole_user" "user" {
 ### Base
 
 - `username` -  (string, Required) the guacamole user username
-- `password` -  (string) the guacamole user password
-- `group_membership` - (List) list of user group identifiers
-- `system_permissions` - (List) list of system permissions assigned to the user
-- `connections` - (List) list of connection identifiers assigned to the user.  This list currently does not include connection identifiers from parent user groups.
-- `connection_groups` - (List) list of connection group identifiers assigned to the user.  This list currently does not include connection group identifiers from parent user groups.
+- `password` -  (string, Sensitive) the guacamole user password (write-only: the API never returns it, so the configured value is preserved in state)
+- `group_membership` - (Set) identifiers of the user groups this user belongs to
+- `system_permissions` - (Set) system permissions assigned to the user
+- `connections` - (Set) connection identifiers assigned to the user.  This list currently does not include connection identifiers from parent user groups.
+- `connection_groups` - (Set) connection group identifiers assigned to the user.  This list currently does not include connection group identifiers from parent user groups.
+
+> **Note:** `group_membership`, `system_permissions`, `connections`, and `connection_groups` are
+> authoritative sets. Permissions or memberships granted outside Terraform (for example, manually
+> in the Guacamole UI) are removed on the next apply.
 
 ### Attributes
 
