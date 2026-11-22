@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -74,7 +73,6 @@ func (c *Client) Connect() error {
 		var result interface{}
 		err := c.Call(req, &result)
 		if err != nil {
-			log.Printf("%s", err)
 			return err
 		}
 		if result == nil {
