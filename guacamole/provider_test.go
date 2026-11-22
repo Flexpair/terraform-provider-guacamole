@@ -58,8 +58,28 @@ func TestConnectionFontSizeIsValidatedBySchema(t *testing.T) {
 	}
 }
 
-func TestConnectionPlanTimeValidationAttached(t *testing.T) {
-	provider := Provider()
+func parameterField(t *testing.T, provider *schema.Provider, resourceName, parameter string) *schema.Schema {
+	t.Helper()
+	resource, ok := provider.ResourcesMap[resourceName]
+	if !ok {
+		t.Fatalf("resource %s is not registered", resourceName)
+	}
+	parametersField, ok := resource.Schema["parameters"]
+	if !ok {
+		t.Fatalf("resource %s parameters is missing", resourceName)
+	}
+	parameters, ok := parametersField.Elem.(*schema.Resource)
+	if !ok {
+		t.Fatalf("resource %s parameters must be a nested resource", resourceName)
+	}
+	field, ok := parameters.Schema[parameter]
+	if !ok {
+		t.Fatalf("resource %s parameters.%s is missing", resourceName, parameter)
+	}
+	return field
+}
+
+func testConnectionPlanValidationAttached(t *testing.T, provider *schema.Provider) {
 	cases := []struct {
 		resourceName string
 		parameter    string
@@ -74,30 +94,15 @@ func TestConnectionPlanTimeValidationAttached(t *testing.T) {
 		{resourceName: "guacamole_connection_rdp", parameter: "timezone"},
 	}
 	for _, tc := range cases {
-		resource, ok := provider.ResourcesMap[tc.resourceName]
-		if !ok {
-			t.Errorf("resource %s is not registered", tc.resourceName)
-			continue
-		}
-		parameters, ok := resource.Schema["parameters"].Elem.(*schema.Resource)
-		if !ok {
-			t.Errorf("resource %s parameters must be a nested resource", tc.resourceName)
-			continue
-		}
-		field, ok := parameters.Schema[tc.parameter]
-		if !ok {
-			t.Errorf("resource %s parameters.%s is missing", tc.resourceName, tc.parameter)
-			continue
-		}
+		field := parameterField(t, provider, tc.resourceName, tc.parameter)
 		if field.ValidateDiagFunc == nil {
 			t.Errorf("resource %s parameters.%s must validate during planning", tc.resourceName, tc.parameter)
 		}
 	}
+}
 
-	// Spot-check behavior: restricted values and integers reject bad input at
-	// plan time but allow empty values (Guacamole applies its own defaults).
-	rdp := provider.ResourcesMap["guacamole_connection_rdp"]
-	securityMode := rdp.Schema["parameters"].Elem.(*schema.Resource).Schema["security_mode"]
+func testConnectionPlanRestrictedValues(t *testing.T, provider *schema.Provider) {
+	securityMode := parameterField(t, provider, "guacamole_connection_rdp", "security_mode")
 	if diags := securityMode.ValidateDiagFunc("bogus", nil); !diags.HasError() {
 		t.Error("accepted unsupported security_mode at plan time")
 	}
@@ -107,28 +112,36 @@ func TestConnectionPlanTimeValidationAttached(t *testing.T) {
 	if diags := securityMode.ValidateDiagFunc("nla", nil); len(diags) != 0 {
 		t.Errorf("rejected supported security_mode nla: %#v", diags)
 	}
-	port := rdp.Schema["parameters"].Elem.(*schema.Resource).Schema["port"]
+}
+
+func testConnectionPlanIntegersAndTimezone(t *testing.T, provider *schema.Provider) {
+	port := parameterField(t, provider, "guacamole_connection_rdp", "port")
 	if diags := port.ValidateDiagFunc("not-a-port", nil); !diags.HasError() {
 		t.Error("accepted a non-integer port at plan time")
-	}
-	telnet := provider.ResourcesMap["guacamole_connection_telnet"]
-	maxScrollbackSize := telnet.Schema["parameters"].Elem.(*schema.Resource).Schema["max_scrollback_size"]
-	if diags := maxScrollbackSize.ValidateDiagFunc("not-an-integer", nil); !diags.HasError() {
-		t.Error("accepted a non-integer max_scrollback_size at plan time")
 	}
 	if diags := port.ValidateDiagFunc("3389", nil); len(diags) != 0 {
 		t.Errorf("rejected integer port 3389: %#v", diags)
 	}
-	timezone := rdp.Schema["parameters"].Elem.(*schema.Resource).Schema["timezone"]
+
+	maxScrollbackSize := parameterField(t, provider, "guacamole_connection_telnet", "max_scrollback_size")
+	if diags := maxScrollbackSize.ValidateDiagFunc("not-an-integer", nil); !diags.HasError() {
+		t.Error("accepted a non-integer max_scrollback_size at plan time")
+	}
+
+	timezone := parameterField(t, provider, "guacamole_connection_rdp", "timezone")
 	if diags := timezone.ValidateDiagFunc("Not/A_Zone", nil); !diags.HasError() {
 		t.Error("accepted an invalid timezone at plan time")
 	}
 	if diags := timezone.ValidateDiagFunc("America/Chicago", nil); len(diags) != 0 {
 		t.Errorf("rejected valid timezone America/Chicago: %#v", diags)
 	}
+}
 
-	// Connection group: type enumeration and integer-like attributes.
-	group := provider.ResourcesMap["guacamole_connection_group"]
+func testConnectionGroupPlanValidation(t *testing.T, provider *schema.Provider) {
+	group, ok := provider.ResourcesMap["guacamole_connection_group"]
+	if !ok {
+		t.Fatal("resource guacamole_connection_group is not registered")
+	}
 	typeField := group.Schema["type"]
 	if diags := typeField.ValidateDiagFunc("nonsense", nil); !diags.HasError() {
 		t.Error("accepted an unsupported connection group type at plan time")
@@ -136,6 +149,22 @@ func TestConnectionPlanTimeValidationAttached(t *testing.T) {
 	if diags := typeField.ValidateDiagFunc("organizational", nil); len(diags) != 0 {
 		t.Errorf("rejected lowercase organizational (StateFunc uppercases): %#v", diags)
 	}
+}
+
+func TestConnectionPlanTimeValidationAttached(t *testing.T) {
+	provider := Provider()
+	t.Run("attached validators", func(t *testing.T) {
+		testConnectionPlanValidationAttached(t, provider)
+	})
+	t.Run("restricted values", func(t *testing.T) {
+		testConnectionPlanRestrictedValues(t, provider)
+	})
+	t.Run("integers and timezone", func(t *testing.T) {
+		testConnectionPlanIntegersAndTimezone(t, provider)
+	})
+	t.Run("connection group", func(t *testing.T) {
+		testConnectionGroupPlanValidation(t, provider)
+	})
 }
 
 func TestConnectionCredentialFieldsAreSensitive(t *testing.T) {

@@ -263,36 +263,45 @@ func validateTimezoneString(value interface{}, key string) ([]string, []error) {
 	return nil, nil
 }
 
+func nestedBlockSchema(resource *schema.Resource, blockName string) (*schema.Resource, bool) {
+	blockField, ok := resource.Schema[blockName]
+	if !ok {
+		return nil, false
+	}
+	block, ok := blockField.Elem.(*schema.Resource)
+	if !ok {
+		return nil, false
+	}
+	return block, true
+}
+
+func setValidator(block *schema.Resource, key string, fn schema.SchemaValidateFunc) {
+	if field, ok := block.Schema[key]; ok {
+		field.ValidateDiagFunc = validation.ToDiagFunc(fn)
+	}
+}
+
+func applyBlockValidation(block *schema.Resource, integers []string, restricted map[string][]string, timezone bool) {
+	for _, key := range integers {
+		setValidator(block, key, validateIntegerString)
+	}
+	for key, validValues := range restricted {
+		setValidator(block, key, validateRestrictedStringValue(validValues))
+	}
+	if timezone {
+		setValidator(block, "timezone", validateTimezoneString)
+	}
+}
+
 // applyConnectionValidation attaches plan-time schema validators derived from
 // the protocol spec to the nested attributes and parameters blocks.
 func applyConnectionValidation(resource *schema.Resource, spec connectionValidationSpec) *schema.Resource {
-	applyToBlock := func(blockName string, integers []string, restricted map[string][]string, timezone bool) {
-		blockField, ok := resource.Schema[blockName]
-		if !ok {
-			return
-		}
-		block, ok := blockField.Elem.(*schema.Resource)
-		if !ok {
-			return
-		}
-		for _, key := range integers {
-			if field, ok := block.Schema[key]; ok {
-				field.ValidateDiagFunc = validation.ToDiagFunc(validateIntegerString)
-			}
-		}
-		for key, validValues := range restricted {
-			if field, ok := block.Schema[key]; ok {
-				field.ValidateDiagFunc = validation.ToDiagFunc(validateRestrictedStringValue(validValues))
-			}
-		}
-		if timezone {
-			if field, ok := block.Schema["timezone"]; ok {
-				field.ValidateDiagFunc = validation.ToDiagFunc(validateTimezoneString)
-			}
-		}
+	if block, ok := nestedBlockSchema(resource, "attributes"); ok {
+		applyBlockValidation(block, spec.attributeIntegers, spec.restrictedAttributes, false)
 	}
-	applyToBlock("attributes", spec.attributeIntegers, spec.restrictedAttributes, false)
-	applyToBlock("parameters", spec.parameterIntegers, spec.restrictedParameters, spec.timezoneParameter)
+	if block, ok := nestedBlockSchema(resource, "parameters"); ok {
+		applyBlockValidation(block, spec.parameterIntegers, spec.restrictedParameters, spec.timezoneParameter)
+	}
 	return resource
 }
 
@@ -300,23 +309,9 @@ func applyConnectionValidation(resource *schema.Resource, spec connectionValidat
 // connection group resource (type enumeration and integer-like attributes).
 func applyConnectionGroupValidation(resource *schema.Resource) *schema.Resource {
 	connectionGroupInterface := types.GuacConnectionGroup{}
-	if typeField, ok := resource.Schema["type"]; ok {
-		typeField.ValidateDiagFunc = validation.ToDiagFunc(
-			validation.StringInSlice(connectionGroupInterface.ValidTypes(), true),
-		)
-	}
-	attributesField, ok := resource.Schema["attributes"]
-	if !ok {
-		return resource
-	}
-	block, ok := attributesField.Elem.(*schema.Resource)
-	if !ok {
-		return resource
-	}
-	for _, key := range []string{"max_connections", "max_connections_per_user"} {
-		if field, ok := block.Schema[key]; ok {
-			field.ValidateDiagFunc = validation.ToDiagFunc(validateIntegerString)
-		}
+	setValidator(resource, "type", validation.StringInSlice(connectionGroupInterface.ValidTypes(), true))
+	if block, ok := nestedBlockSchema(resource, "attributes"); ok {
+		applyBlockValidation(block, []string{"max_connections", "max_connections_per_user"}, nil, false)
 	}
 	return resource
 }
