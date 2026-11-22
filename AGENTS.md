@@ -22,9 +22,10 @@ rather than duplicating them elsewhere.
   guards `d.Set("password", ...)` so an empty API response no longer overwrites configured state
   and causes perpetual plan drift.
 - **Empty-URL + idempotent CRUD** — multi-wave Stacks planning may pass an empty provider URL; Read
-  returns "not found" (plan shows create), while Create/Update/Delete error clearly if the URL is
-  still empty at apply. Read/Delete treat 404s gracefully so a replaced gateway (fresh DB, stale
-  state IDs) reconciles cleanly. Polling window extended (~30 min) for slow gateway rebuilds.
+  leaves existing state unchanged (a new resource remains uncreated), while Create/Update/Delete
+  error clearly if the URL is still empty at apply. Read/Delete treat 404s gracefully so a replaced
+  gateway (fresh DB, stale state IDs) reconciles cleanly. Polling window extended (~30 min) for
+  slow gateway rebuilds.
 
 ## Tech stack and structure
 
@@ -37,7 +38,8 @@ rather than duplicating them elsewhere.
 ## Conventions and gotchas
 
 - **Use the lazy-client helpers, never `m.(*LazyClient)` directly:** `readWithClient(m, d)` for
-  Read (returns nil/clears ID when unconfigured) and `writeWithClient(m)` for Create/Update/Delete.
+  Read (returns nil without changing state when unconfigured) and `writeWithClient(m)` for
+  Create/Update/Delete.
 - **Preserve the 404 + password-preservation patterns** when adding or editing resources —
   `isNotFoundError(err)` matches the 404 substring; Read sets `d.SetId("")`, Delete treats 404 as
   success.
