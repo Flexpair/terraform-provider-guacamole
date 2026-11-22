@@ -32,10 +32,10 @@ func newLifecycleTestServer(t *testing.T, status int) *httptest.Server {
 	}))
 }
 
-// TestReadWithClientUnconfiguredClearsID covers the empty-URL mode used by
-// HCP Terraform Stacks multi-wave planning: Read must report "not found"
-// (cleared ID, no diagnostics) so the plan shows a create instead of failing.
-func TestReadWithClientUnconfiguredClearsID(t *testing.T) {
+// TestReadWithClientUnconfiguredPreservesID covers the empty-URL mode used by
+// HCP Terraform Stacks multi-wave planning: Read must leave existing state
+// unchanged because an unavailable URL does not prove the resource is missing.
+func TestReadWithClientUnconfiguredPreservesID(t *testing.T) {
 	lc := NewLazyClient(guac.Config{})
 	data := schema.TestResourceDataRaw(t, guacamoleUser().Schema, map[string]interface{}{})
 	data.SetId("someone")
@@ -47,8 +47,8 @@ func TestReadWithClientUnconfiguredClearsID(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("readWithClient returned diagnostics: %#v", diags)
 	}
-	if data.Id() != "" {
-		t.Fatalf("id = %q, want cleared id so Terraform plans a create", data.Id())
+	if data.Id() != "someone" {
+		t.Fatalf("id = %q, want existing id preserved", data.Id())
 	}
 }
 

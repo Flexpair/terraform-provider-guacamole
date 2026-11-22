@@ -23,7 +23,7 @@ import (
 //
 // When the provider URL is empty (common during Stacks multi-wave planning),
 // the client operates in "unconfigured" mode: Get() returns nil without error,
-// and resource Read functions treat this as "resource not found".
+// and resource Read functions leave their existing state unchanged.
 type LazyClient struct {
 	config guac.Config
 	client *guac.Client
@@ -83,13 +83,12 @@ func isNotFoundError(err error) bool {
 }
 
 // readWithClient returns an authenticated client for Read operations.
-// If the provider URL is empty (Stacks deferred planning), it clears the
-// resource ID and returns nil — telling Terraform the resource doesn't exist
-// yet, so the plan shows "create" instead of erroring.
+// If the provider URL is empty (Stacks deferred planning), it returns nil
+// without changing the resource ID. An empty URL does not establish that the
+// remote resource is missing.
 func readWithClient(m interface{}, d *schema.ResourceData) (*guac.Client, diag.Diagnostics) {
 	lc := m.(*LazyClient)
 	if !lc.IsConfigured() {
-		d.SetId("")
 		return nil, nil
 	}
 	client, err := lc.Get()
