@@ -1,7 +1,10 @@
 package guacamole
 
 import (
+	"bytes"
 	"errors"
+	"log"
+	"strings"
 	"testing"
 	"time"
 
@@ -98,6 +101,42 @@ func TestLazyClientGetCachesFinalError(t *testing.T) {
 	}
 	if attempts != 3 {
 		t.Fatalf("second Get() attempted reconnect; attempts = %d, want 3", attempts)
+	}
+}
+
+func TestLazyClientDoesNotExposeConnectionErrors(t *testing.T) {
+	lazyClient := NewLazyClient(guac.Config{URL: "https://example.test/guacamole"})
+	lazyClient.maxAttempts = 2
+	lazyClient.retryInterval = time.Second
+	lazyClient.connect = func(guac.Config) (*guac.Client, error) {
+		return nil, errors.New("request headers: Guacamole-Token: secret-token; Cookie: secret-cookie")
+	}
+	lazyClient.sleep = func(time.Duration) {}
+
+	var logs bytes.Buffer
+	originalLogOutput := log.Writer()
+	log.SetOutput(&logs)
+	t.Cleanup(func() {
+		log.SetOutput(originalLogOutput)
+	})
+
+	_, err := lazyClient.Get()
+	if err == nil {
+		t.Fatal("Get() returned nil error, want failure")
+	}
+	for _, secret := range []string{"secret-token", "secret-cookie"} {
+		if strings.Contains(err.Error(), secret) {
+			t.Errorf("Get() error exposed %q: %v", secret, err)
+		}
+		if strings.Contains(logs.String(), secret) {
+			t.Errorf("connection logs exposed %q: %s", secret, logs.String())
+		}
+	}
+	if !strings.Contains(err.Error(), "after 2 attempts") {
+		t.Errorf("Get() error = %q, want attempt count", err)
+	}
+	if !strings.Contains(logs.String(), "connection attempt 1/2 failed") {
+		t.Errorf("connection log = %q, want retry status", logs.String())
 	}
 }
 

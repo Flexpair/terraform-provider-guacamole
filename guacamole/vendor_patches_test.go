@@ -34,6 +34,9 @@ func TestVendoredGuacamoleClientPatches(t *testing.T) {
 	if strings.Contains(clientSrc, "ioutil.ReadAll") || !strings.Contains(clientSrc, "io.ReadAll(resp.Body)") {
 		t.Error("vendored client is missing the io.ReadAll patch (see scripts/restore-vendored-guacamole-patches.sh)")
 	}
+	if strings.Contains(clientSrc, `log.Printf("%s", err)`) {
+		t.Error("vendored client logs raw authentication errors (see scripts/restore-vendored-guacamole-patches.sh)")
+	}
 	if !strings.Contains(usersSrc, "LastActive int64") {
 		t.Error("vendored users type is missing the LastActive int64 patch (see scripts/restore-vendored-guacamole-patches.sh)")
 	}

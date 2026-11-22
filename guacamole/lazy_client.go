@@ -140,7 +140,6 @@ func (lc *LazyClient) Get() (*guac.Client, error) {
 
 func (lc *LazyClient) connectWithRetry() (*guac.Client, error) {
 	connect, sleep, retryInterval, maxAttempts := lc.retryPolicy()
-	var lastErr error
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		client, err := connect(lc.config)
@@ -151,15 +150,14 @@ func (lc *LazyClient) connectWithRetry() (*guac.Client, error) {
 			return client, nil
 		}
 
-		lastErr = err
 		if attempt == maxAttempts {
 			break
 		}
-		log.Printf("[INFO] Guacamole connection attempt %d/%d failed: %v. Retrying in %s...", attempt, maxAttempts, err, retryInterval)
+		log.Printf("[INFO] Guacamole connection attempt %d/%d failed. Retrying in %s...", attempt, maxAttempts, retryInterval)
 		sleep(retryInterval)
 	}
 
-	return nil, fmt.Errorf("unable to create guacamole client after %d attempts: %w", maxAttempts, lastErr)
+	return nil, fmt.Errorf("unable to create guacamole client after %d attempts", maxAttempts)
 }
 
 func (lc *LazyClient) retryPolicy() (func(guac.Config) (*guac.Client, error), func(time.Duration), time.Duration, int) {
