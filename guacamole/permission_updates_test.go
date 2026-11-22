@@ -361,8 +361,6 @@ func newPermissionTestServer(t *testing.T, patchHandler func(*http.Request)) *ht
 			_ = json.NewEncoder(w).Encode(types.GuacUserGroup{Identifier: "test-group"})
 		case "/api/session/data/test/userGroups/test-group/userGroups":
 			_ = json.NewEncoder(w).Encode([]string{})
-		case "/api/session/data/test/userGroups/test-group/memberUserGroups":
-			_ = json.NewEncoder(w).Encode([]string{})
 		case "/api/session/data/test/userGroups/test-group/permissions":
 			_ = json.NewEncoder(w).Encode(types.GuacPermissionData{})
 		default:
