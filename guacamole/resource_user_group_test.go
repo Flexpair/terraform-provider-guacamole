@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -17,8 +16,9 @@ var testProviderUserGroup = map[string]interface{}{
 
 func TestAccGuacamoleUserGroupBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGuacamoleUserGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckGuacamoleUserGroupConfigBasic(toHclString(testProviderUserGroup, true)),
@@ -33,17 +33,20 @@ func TestAccGuacamoleUserGroupBasic(t *testing.T) {
 }
 
 func testAccCheckGuacamoleUserGroupDestroy(s *terraform.State) error {
-	c := testAccProvider.Meta().(*guac.Client)
+	c, err := acceptanceClient()
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "guacamole_user_group" {
 			continue
 		}
 
-		username := rs.Primary.ID
+		identifier := rs.Primary.ID
 
-		err := c.DeleteUser(username)
-		if err != nil {
+		group, err := c.ReadUserGroup(identifier)
+		if err := checkDestroyedResource("user group", identifier, group.Identifier, err); err != nil {
 			return err
 		}
 	}

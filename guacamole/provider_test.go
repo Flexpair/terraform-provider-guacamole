@@ -1,10 +1,14 @@
 package guacamole
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	guac "github.com/techBeck03/guacamole-api-client"
 )
 
 var testAccProviders map[string]*schema.Provider
@@ -52,6 +56,115 @@ func TestConnectionFontSizeIsValidatedBySchema(t *testing.T) {
 			t.Error("accepted unsupported font size 13")
 		}
 	}
+}
+
+func parameterField(t *testing.T, provider *schema.Provider, resourceName, parameter string) *schema.Schema {
+	t.Helper()
+	resource, ok := provider.ResourcesMap[resourceName]
+	if !ok {
+		t.Fatalf("resource %s is not registered", resourceName)
+	}
+	parametersField, ok := resource.Schema["parameters"]
+	if !ok {
+		t.Fatalf("resource %s parameters is missing", resourceName)
+	}
+	parameters, ok := parametersField.Elem.(*schema.Resource)
+	if !ok {
+		t.Fatalf("resource %s parameters must be a nested resource", resourceName)
+	}
+	field, ok := parameters.Schema[parameter]
+	if !ok {
+		t.Fatalf("resource %s parameters.%s is missing", resourceName, parameter)
+	}
+	return field
+}
+
+func testConnectionPlanValidationAttached(t *testing.T, provider *schema.Provider) {
+	cases := []struct {
+		resourceName string
+		parameter    string
+	}{
+		{resourceName: "guacamole_connection_rdp", parameter: "security_mode"},
+		{resourceName: "guacamole_connection_ssh", parameter: "color_scheme"},
+		{resourceName: "guacamole_connection_vnc", parameter: "cursor"},
+		{resourceName: "guacamole_connection_telnet", parameter: "terminal_type"},
+		{resourceName: "guacamole_connection_kubernetes", parameter: "backspace"},
+		{resourceName: "guacamole_connection_ssh", parameter: "port"},
+		{resourceName: "guacamole_connection_telnet", parameter: "max_scrollback_size"},
+		{resourceName: "guacamole_connection_rdp", parameter: "timezone"},
+	}
+	for _, tc := range cases {
+		field := parameterField(t, provider, tc.resourceName, tc.parameter)
+		if field.ValidateDiagFunc == nil {
+			t.Errorf("resource %s parameters.%s must validate during planning", tc.resourceName, tc.parameter)
+		}
+	}
+}
+
+func testConnectionPlanRestrictedValues(t *testing.T, provider *schema.Provider) {
+	securityMode := parameterField(t, provider, "guacamole_connection_rdp", "security_mode")
+	if diags := securityMode.ValidateDiagFunc("bogus", nil); !diags.HasError() {
+		t.Error("accepted unsupported security_mode at plan time")
+	}
+	if diags := securityMode.ValidateDiagFunc("", nil); len(diags) != 0 {
+		t.Errorf("rejected an empty security_mode: %#v", diags)
+	}
+	if diags := securityMode.ValidateDiagFunc("nla", nil); len(diags) != 0 {
+		t.Errorf("rejected supported security_mode nla: %#v", diags)
+	}
+}
+
+func testConnectionPlanIntegersAndTimezone(t *testing.T, provider *schema.Provider) {
+	port := parameterField(t, provider, "guacamole_connection_rdp", "port")
+	if diags := port.ValidateDiagFunc("not-a-port", nil); !diags.HasError() {
+		t.Error("accepted a non-integer port at plan time")
+	}
+	if diags := port.ValidateDiagFunc("3389", nil); len(diags) != 0 {
+		t.Errorf("rejected integer port 3389: %#v", diags)
+	}
+
+	maxScrollbackSize := parameterField(t, provider, "guacamole_connection_telnet", "max_scrollback_size")
+	if diags := maxScrollbackSize.ValidateDiagFunc("not-an-integer", nil); !diags.HasError() {
+		t.Error("accepted a non-integer max_scrollback_size at plan time")
+	}
+
+	timezone := parameterField(t, provider, "guacamole_connection_rdp", "timezone")
+	if diags := timezone.ValidateDiagFunc("Not/A_Zone", nil); !diags.HasError() {
+		t.Error("accepted an invalid timezone at plan time")
+	}
+	if diags := timezone.ValidateDiagFunc("America/Chicago", nil); len(diags) != 0 {
+		t.Errorf("rejected valid timezone America/Chicago: %#v", diags)
+	}
+}
+
+func testConnectionGroupPlanValidation(t *testing.T, provider *schema.Provider) {
+	group, ok := provider.ResourcesMap["guacamole_connection_group"]
+	if !ok {
+		t.Fatal("resource guacamole_connection_group is not registered")
+	}
+	typeField := group.Schema["type"]
+	if diags := typeField.ValidateDiagFunc("nonsense", nil); !diags.HasError() {
+		t.Error("accepted an unsupported connection group type at plan time")
+	}
+	if diags := typeField.ValidateDiagFunc("organizational", nil); len(diags) != 0 {
+		t.Errorf("rejected lowercase organizational (StateFunc uppercases): %#v", diags)
+	}
+}
+
+func TestConnectionPlanTimeValidationAttached(t *testing.T) {
+	provider := Provider()
+	t.Run("attached validators", func(t *testing.T) {
+		testConnectionPlanValidationAttached(t, provider)
+	})
+	t.Run("restricted values", func(t *testing.T) {
+		testConnectionPlanRestrictedValues(t, provider)
+	})
+	t.Run("integers and timezone", func(t *testing.T) {
+		testConnectionPlanIntegersAndTimezone(t, provider)
+	})
+	t.Run("connection group", func(t *testing.T) {
+		testConnectionGroupPlanValidation(t, provider)
+	})
 }
 
 func TestConnectionCredentialFieldsAreSensitive(t *testing.T) {
@@ -116,5 +229,89 @@ func testAccPreCheck(t *testing.T) {
 		if os.Getenv("GUACAMOLE_DATA_SOURCE") == "" {
 			t.Fatal("GUACAMOLE_DATA_SOURCE must be set for acceptance tests when GUACAMOLE_TOKEN is provided")
 		}
+	}
+}
+
+// acceptanceClient returns an authenticated API client for acceptance-test
+// CheckDestroy callbacks. Provider meta is a *LazyClient since lazy init was
+// introduced, so destroy checks must go through LazyClient.Get() instead of
+// asserting *guac.Client directly (which panics).
+func acceptanceClient() (*guac.Client, error) {
+	lc, ok := testAccProvider.Meta().(*LazyClient)
+	if !ok {
+		return nil, fmt.Errorf("provider meta is %T, want *LazyClient", testAccProvider.Meta())
+	}
+	return lc.Get()
+}
+
+var connectionResourceTypes = map[string]bool{
+	"guacamole_connection_ssh":        true,
+	"guacamole_connection_rdp":        true,
+	"guacamole_connection_vnc":        true,
+	"guacamole_connection_telnet":     true,
+	"guacamole_connection_kubernetes": true,
+}
+
+// testAccCheckGuacamoleConnectionDestroy verifies that no connection or
+// connection group created during an acceptance test remains on the server.
+func testAccCheckGuacamoleConnectionDestroy(s *terraform.State) error {
+	client, err := acceptanceClient()
+	if err != nil {
+		return err
+	}
+	for _, rs := range s.RootModule().Resources {
+		switch {
+		case rs.Type == "guacamole_connection_group":
+			group, err := client.ReadConnectionGroup(rs.Primary.ID)
+			if err := checkDestroyedResource("connection group", rs.Primary.ID, group.Identifier, err); err != nil {
+				return err
+			}
+		case connectionResourceTypes[rs.Type]:
+			connection, err := client.ReadConnection(rs.Primary.ID)
+			if err := checkDestroyedResource("connection", rs.Primary.ID, connection.Identifier, err); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func checkDestroyedResource(resourceType, identifier, returnedIdentifier string, err error) error {
+	if returnedIdentifier != "" {
+		return fmt.Errorf("%s %q still exists", resourceType, identifier)
+	}
+	if isNotFoundError(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("error checking %s %q during destroy: %w", resourceType, identifier, err)
+	}
+	return fmt.Errorf("read %s %q returned no identifier without a not-found error", resourceType, identifier)
+}
+
+func TestCheckDestroyedResource(t *testing.T) {
+	readError := errors.New("connection failed")
+	cases := []struct {
+		name               string
+		returnedIdentifier string
+		readError          error
+		wantError          bool
+	}{
+		{name: "present resource", returnedIdentifier: "returned-id", wantError: true},
+		{name: "present resource despite later read error", returnedIdentifier: "returned-id", readError: readError, wantError: true},
+		{name: "not found", readError: errors.New("failed with status code 404"), wantError: false},
+		{name: "other read error", readError: readError, wantError: true},
+		{name: "empty response without not found", wantError: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := checkDestroyedResource("connection", "requested-id", tc.returnedIdentifier, tc.readError)
+			if (err != nil) != tc.wantError {
+				t.Fatalf("checkDestroyedResource() error = %v, wantError %t", err, tc.wantError)
+			}
+			if tc.name == "other read error" && !errors.Is(err, readError) {
+				t.Errorf("checkDestroyedResource() error = %v, want wrapped read error", err)
+			}
+		})
 	}
 }

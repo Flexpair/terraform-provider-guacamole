@@ -21,13 +21,14 @@ var testProviderConnectionGroup = map[string]interface{}{
 
 func TestAccGuacamoleConnectionGroupBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGuacamoleConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckGuacamoleConnectionGroupConfigBasic(toHclString(testProviderConnectionGroup, true)),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGuacamoleUserGroupExists("guacamole_connection_group.new"),
+					testAccCheckGuacamoleConnectionGroupExists("guacamole_connection_group.new"),
 					resource.TestCheckResourceAttr("guacamole_connection_group.new", "parent_identifier", testProviderConnectionGroup["parent_identifier"].(string)),
 					resource.TestCheckResourceAttr("guacamole_connection_group.new", "attributes.0.max_connections", testProviderConnectionGroup["attributes"].(map[string]interface{})["max_connections"].(string)),
 					resource.TestCheckResourceAttr("guacamole_connection_group.new", "attributes.0.max_connections_per_user", testProviderConnectionGroup["attributes"].(map[string]interface{})["max_connections_per_user"].(string)),

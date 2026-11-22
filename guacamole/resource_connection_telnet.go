@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -330,7 +329,7 @@ func resourceConnectionTelnetCreate(ctx context.Context, d *schema.ResourceData,
 
 	// Warning or errors can be collected in a slice type
 
-	validate := validateConnectionTelnet(d, client)
+	validate := validateConnectionTelnet(d)
 
 	if validate.HasError() {
 		return validate
@@ -367,7 +366,7 @@ func resourceConnectionTelnetUpdate(ctx context.Context, d *schema.ResourceData,
 	// Warning or errors can be collected in a slice type
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "attributes", "parameters") {
-		validate := validateConnectionTelnet(d, client)
+		validate := validateConnectionTelnet(d)
 
 		if validate.HasError() {
 			return validate
@@ -479,21 +478,6 @@ func convertGuacConnectionTelnetToResourceData(d *schema.ResourceData, connectio
 	d.Set("parameters", parameterList)
 
 	return diags
-}
-
-func validateConnectionTelnet(d *schema.ResourceData, client *guac.Client) diag.Diagnostics {
-	var attributeInterface types.GuacConnectionAttributes
-	var parameterInterface types.GuacConnectionParameters
-	attributeDiagnostics := validateStringFields(d.Get("attributes").([]interface{}), []string{"guacd_port", "weight", "max_connections", "max_connections_per_user"}, map[string][]string{
-		"guacd_encryption": attributeInterface.ValidEncryptionTypes(),
-	}, "attribute")
-	parameterDiagnostics := validateStringFields(d.Get("parameters").([]interface{}), []string{"port", "wol_boot_wait_time"}, map[string][]string{
-		"color_scheme":  parameterInterface.ValidColorSchemes(),
-		"font_size":     parameterInterface.ValidFontSizes(),
-		"backspace":     parameterInterface.ValidBackspaceCodes(),
-		"terminal_type": parameterInterface.ValidTerminalTypes(),
-	}, "parameter")
-	return append(attributeDiagnostics, parameterDiagnostics...)
 }
 
 func convertResourceDataToGuacConnectionTelnet(d *schema.ResourceData) (types.GuacConnection, diag.Diagnostics) {

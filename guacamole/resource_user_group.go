@@ -104,7 +104,7 @@ func resourceUserGroupCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	d.SetId(group.Identifier)
-	resourceUserGroupRead(ctx, d, m)
+	diags = append(diags, resourceUserGroupRead(ctx, d, m)...)
 
 	return diags
 Cleanup:
@@ -193,7 +193,7 @@ func resourceUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diags
 	}
 
-	if d.HasChanges("username", "attributes") {
+	if d.HasChanges("identifier", "attributes") {
 		group, err := convertResourceDataToGuacUserGroup(d)
 		if err != nil {
 			return diag.FromErr(err)

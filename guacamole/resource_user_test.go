@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -60,7 +59,10 @@ func TestAccGuacamoleUserBasic(t *testing.T) {
 }
 
 func testAccCheckGuacamoleUserDestroy(s *terraform.State) error {
-	c := testAccProvider.Meta().(*guac.Client)
+	c, err := acceptanceClient()
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "guacamole_user" {
@@ -70,11 +72,8 @@ func testAccCheckGuacamoleUserDestroy(s *terraform.State) error {
 		username := rs.Primary.ID
 
 		user, err := c.ReadUser(username)
-		if err != nil {
-			return nil
-		}
-		if user.Username != "" {
-			return fmt.Errorf("Username %s still exists in guacamole database", username)
+		if err := checkDestroyedResource("user", username, user.Username, err); err != nil {
+			return err
 		}
 	}
 

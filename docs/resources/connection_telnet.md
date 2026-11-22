@@ -37,7 +37,7 @@ resource "guacamole_connection_telnet" "telnet" {
 ### Base
 
 - `name` -  (string, Required) Name of the connection
-- `parent_identifier` -  (string, Required) Numeric identifier of the parent connection
+- `parent_identifier` -  (string, Optional) Numeric identifier of the parent connection or connection group. Defaults to `ROOT`
 
 ### Attributes
 
@@ -100,7 +100,7 @@ resource "guacamole_connection_telnet" "telnet" {
   - `vt100`
   - `vt220`
   - `xterm`
-  - `xterm-25color`
+  - `xterm-256color`
 #### *Typescript (Text Session Recording)*
 - `typescript_path` - (string) typescript path
 - `typescript_name` - (string) typescript name

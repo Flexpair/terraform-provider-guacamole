@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	guac "github.com/techBeck03/guacamole-api-client"
 	types "github.com/techBeck03/guacamole-api-client/types"
 )
 
@@ -378,7 +377,7 @@ func resourceConnectionVNCCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	// Warning or errors can be collected in a slice type
 
-	validate := validateConnectionVNC(d, client)
+	validate := validateConnectionVNC(d)
 
 	if validate.HasError() {
 		return validate
@@ -415,7 +414,7 @@ func resourceConnectionVNCUpdate(ctx context.Context, d *schema.ResourceData, m 
 	// Warning or errors can be collected in a slice type
 
 	if d.HasChanges("name", "identifier", "parent_identifier", "attributes", "parameters") {
-		validate := validateConnectionVNC(d, client)
+		validate := validateConnectionVNC(d)
 
 		if validate.HasError() {
 			return validate
@@ -535,20 +534,6 @@ func convertGuacConnectionVNCToResourceData(d *schema.ResourceData, connection *
 	d.Set("parameters", parameterList)
 
 	return diags
-}
-
-func validateConnectionVNC(d *schema.ResourceData, client *guac.Client) diag.Diagnostics {
-	var attributeInterface types.GuacConnectionAttributes
-	var parameterInterface types.GuacConnectionParameters
-	attributeDiagnostics := validateStringFields(d.Get("attributes").([]interface{}), []string{"guacd_port", "weight", "max_connections", "max_connections_per_user"}, map[string][]string{
-		"guacd_encryption": attributeInterface.ValidEncryptionTypes(),
-	}, "attribute")
-	parameterDiagnostics := validateStringFields(d.Get("parameters").([]interface{}), []string{"port", "destination_port", "sftp_port", "sftp_keepalive_interval", "wol_boot_wait_time"}, map[string][]string{
-		"cursor":             parameterInterface.ValidCursors(),
-		"color_depth":        parameterInterface.ValidColorDepths(),
-		"clipboard_encoding": parameterInterface.ValidClipboardEncodings(),
-	}, "parameter")
-	return append(attributeDiagnostics, parameterDiagnostics...)
 }
 
 func convertResourceDataToGuacConnectionVNC(d *schema.ResourceData) (types.GuacConnection, diag.Diagnostics) {

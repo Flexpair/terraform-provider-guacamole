@@ -26,7 +26,7 @@ The following attributes are exported.
 
 - `identifier` -  (string) the guacamole user group identifier
 - `group_membership` - (List) list of user group identifiers that this group is a member of
-- `system_permissions` - (List) list of system permissions assigned to the user
+- `system_permissions` - (Set) system permissions assigned to the user group
 - `member_users` - (List) user identifiers that are members of this group
 - `member_groups` - (List) user group identifiers that are members of this group
 - `connections` - list of connection identifiers assigned to the user group.  This list currently does not include connection identifiers from parent user groups.

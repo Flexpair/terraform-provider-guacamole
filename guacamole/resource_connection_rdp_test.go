@@ -101,8 +101,9 @@ func TestAccGuacamoleConnectionRDPBasic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGuacamoleConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckGuacamoleConnectionRDPConfigBasic(toHclString(testProviderConnectionRDP, true)),

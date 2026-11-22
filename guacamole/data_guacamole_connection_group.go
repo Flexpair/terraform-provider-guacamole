@@ -2,7 +2,6 @@ package guacamole
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -39,7 +38,7 @@ func dataSourceConnectionGroup() *schema.Resource {
 			"parent_identifier": {
 				Type:        schema.TypeString,
 				Description: connectionGroupParentDescription,
-				Optional:    true,
+				Computed:    true,
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -89,12 +88,12 @@ func dataSourceConnectionGroup() *schema.Resource {
 						"identifier": {
 							Type:        schema.TypeString,
 							Description: connectionGroupIdentifierDescription,
-							Optional:    true,
+							Computed:    true,
 						},
 						"parent_identifier": {
 							Type:        schema.TypeString,
 							Description: connectionGroupParentDescription,
-							Optional:    true,
+							Computed:    true,
 						},
 						"name": {
 							Type:        schema.TypeString,
@@ -128,7 +127,7 @@ func dataSourceConnectionGroup() *schema.Resource {
 						"parent_identifier": {
 							Type:        schema.TypeString,
 							Description: connectionParentDescription,
-							Optional:    true,
+							Computed:    true,
 						},
 						"name": {
 							Type:        schema.TypeString,
@@ -166,7 +165,7 @@ func dataSourceConnectionGroupRead(ctx context.Context, d *schema.ResourceData, 
 	if path == "" && identifier == "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Missing required parameter"),
+			Summary:  "Missing required parameter",
 			Detail:   "Either `identifier` or `path` must be specified",
 		})
 		return diags
@@ -175,7 +174,7 @@ func dataSourceConnectionGroupRead(ctx context.Context, d *schema.ResourceData, 
 	if path != "" && identifier != "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Identifier and Path are mutually exclusive"),
+			Summary:  "Identifier and Path are mutually exclusive",
 			Detail:   "Either `identifier` or `path` must be specified but not both",
 		})
 		return diags

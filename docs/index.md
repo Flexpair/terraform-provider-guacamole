@@ -13,7 +13,22 @@ The guacamole provider is used to interact with the [Apache Guacamole](https://g
 1. Data sources to read users, user groups, connections for ssh, telnet, vnc, rdp, and kubernetes, and connection groups.
 2. Resources to perform CRUD operations on users, user groups, connections for ssh, telnet, vnc, rdp, and kubernetes, and connection groups.
 
-Provider versioning will align with Guacamole's release versioning starting with release `1.2`
+This is the Flexpair fork of the upstream provider; fork versions are tracked independently (see the README for the fork version history).
+
+## Required Providers
+
+```terraform
+terraform {
+  required_providers {
+    guacamole = {
+      source  = "app.terraform.io/Flexpair/guacamole"
+      version = "~> 2.0"
+    }
+  }
+}
+```
+
+The provider is published to the HCP Terraform private registry of the Flexpair organization.
 
 ## Example Usage
 
@@ -57,12 +72,12 @@ provider "guacamole" {
 
 - **url** (String) URL of guacamole web server (defaults to environment variable `GUACAMOLE_URL`)
 - **username** (String) Username to authenticate to guacamole (defaults to environment variable `GUACAMOLE_USERNAME`)
-- **password** (String) Password to authenticate to guacamole (defaults to environment variable `GUACAMOLE_PASSWORD`). This parameter is mutually exclusive to `token`
-- **token** (String) Token to authenticate to guacamole (defaults to environment variable `GUACAMOLE_TOKEN`).  This parameter is mutually exclusive to `password`
+- **password** (String) Password to authenticate to guacamole (defaults to environment variable `GUACAMOLE_PASSWORD`). At least one of `password` or `token` must be provided; when authenticating with a password, `username` is also required
+- **token** (String) Token to authenticate to guacamole (defaults to environment variable `GUACAMOLE_TOKEN`). At least one of `password` or `token` must be provided; when authenticating with a token, `data_source` is also required
 - **data_source** (String) Datasource for guacamole configuration data (defaults to environment variable `GUACAMOLE_DATA_SOURCE`).  This parameter is required for token based authentication.  Values must be one of:
   - `mysql`
   - `postgresql`
-- **cookies** (Map[string], Optional) Map of cookies to be included with requests if using `token` based authentication.  This parameter helps support cookie based load balancing use cases coupled with dual factor authentication.
+- **cookies** (Map[string], Optional, Sensitive) Map of cookies to be included with requests if using `token` based authentication.  This parameter helps support cookie based load balancing use cases coupled with dual factor authentication.
 - **disable_tls_verification** (Bool, Optional) Whether to disable tls verification for ssl connections (defaults to `false`)
 - **disable_cookies** (Bool, Optional) Whether to disable cookie collection in session (defaults to `false`)
 

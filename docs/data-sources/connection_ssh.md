@@ -101,7 +101,7 @@ The following attributes are exported.
   - `vt100`
   - `vt220`
   - `xterm`
-  - `xterm-25color`
+  - `xterm-256color`
 #### *Typescript (Text Session Recording)*
 - `typescript_path` - (string) typescript path
 - `typescript_name` - (string) typescript name

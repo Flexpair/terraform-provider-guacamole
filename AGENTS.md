@@ -52,8 +52,10 @@ rather than duplicating them elsewhere.
 ## Build, test, validate
 
 - Build: `go build -o terraform-provider-guacamole` (or `goreleaser build --single-target --clean
-  --snapshot`); `make install` drops it into the local Terraform plugin path.
+  --snapshot`); `make install` drops it into the local Terraform plugin path
+  (`~/.terraform.d/plugins/app.terraform.io/Flexpair/guacamole/...`).
 - Test: `go test -v ./...`; acceptance tests need a live server: `TF_ACC=1 go test -v ./...`.
-- CI: `.github/workflows/test.yml` runs `go test` on push/PR; `.github/workflows/release.yml` runs
+- CI: `.github/workflows/test.yml` runs `gofmt`, `go vet`, the vendored-patch verification,
+  `go test`, and a build on push/PR; `.github/workflows/release.yml` runs
   GoReleaser (GPG-signed) on `v*` tags. Publish to the HCP private registry via
   `./scripts/publish-private-provider.sh`.
