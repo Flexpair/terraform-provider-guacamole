@@ -71,8 +71,9 @@ func testAccCheckGuacamoleUserDestroy(s *terraform.State) error {
 
 		username := rs.Primary.ID
 
-		if _, err := c.ReadUser(username); err == nil {
-			return fmt.Errorf("user %s still exists in guacamole database", username)
+		user, err := c.ReadUser(username)
+		if err := checkDestroyedResource("user", username, user.Username, err); err != nil {
+			return err
 		}
 	}
 
