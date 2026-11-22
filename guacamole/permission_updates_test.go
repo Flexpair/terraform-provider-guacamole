@@ -258,7 +258,7 @@ func TestResourceMembershipUpdatesSendDeltas(t *testing.T) {
 			name:     "user group membership",
 			resource: guacamoleUserGroup(),
 			id:       "test-group",
-			wantPath: "/api/session/data/test/userGroups/test-group/memberUserGroups",
+			wantPath: "/api/session/data/test/userGroups/test-group/userGroups",
 			update:   resourceUserGroupUpdate,
 		},
 	}
@@ -359,7 +359,7 @@ func newPermissionTestServer(t *testing.T, patchHandler func(*http.Request)) *ht
 			_ = json.NewEncoder(w).Encode(map[string]types.GuacUserGroup{"parent": {Identifier: "parent"}})
 		case "/api/session/data/test/userGroups/test-group":
 			_ = json.NewEncoder(w).Encode(types.GuacUserGroup{Identifier: "test-group"})
-		case "/api/session/data/test/userGroups/test-group/memberUserGroups":
+		case "/api/session/data/test/userGroups/test-group/userGroups":
 			_ = json.NewEncoder(w).Encode([]string{})
 		case "/api/session/data/test/userGroups/test-group/permissions":
 			_ = json.NewEncoder(w).Encode(types.GuacPermissionData{})

@@ -151,7 +151,7 @@ func resourceUserGroupRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	// Read group membership
-	groups, err := client.GetUserGroupMemberGroups(identifier)
+	groups, err := client.GetUserGroupParentGroups(identifier)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -235,7 +235,7 @@ func resourceUserGroupDelete(ctx context.Context, d *schema.ResourceData, m inte
 
 func applyUserGroupCreatePermissions(d *schema.ResourceData, identifier string, client *guac.Client) diag.Diagnostics {
 	groupMembership := stringSetValues(d.Get("group_membership"))
-	if check := applyPermissionItems(identifier, groupMembership, func(values []string) diag.Diagnostics { return validateGroups(client, values) }, client.NewAddGroupMemberPermission, client.SetUserGroupMemberGroups); check.HasError() {
+	if check := applyPermissionItems(identifier, groupMembership, func(values []string) diag.Diagnostics { return validateGroups(client, values) }, client.NewAddGroupMemberPermission, client.SetUserGroupParentGroups); check.HasError() {
 		return check
 	}
 
@@ -251,7 +251,7 @@ func applyUserGroupCreatePermissions(d *schema.ResourceData, identifier string, 
 
 func userGroupPermissionUpdates(client *guac.Client) []permissionUpdateDefinition {
 	return []permissionUpdateDefinition{
-		{field: "group_membership", validate: func(values []string) diag.Diagnostics { return validateGroups(client, values) }, remove: client.NewRemoveGroupMemberPermission, add: client.NewAddGroupMemberPermission, apply: client.SetUserGroupMemberGroups},
+		{field: "group_membership", validate: func(values []string) diag.Diagnostics { return validateGroups(client, values) }, remove: client.NewRemoveGroupMemberPermission, add: client.NewAddGroupMemberPermission, apply: client.SetUserGroupParentGroups},
 		{field: "system_permissions", validate: func(values []string) diag.Diagnostics {
 			return stringInSlice(types.SystemPermissions{}.ValidChoices(), values)
 		}, remove: client.NewRemoveSystemPermission, add: client.NewAddSystemPermission, apply: client.SetUserGroupPermissions},
