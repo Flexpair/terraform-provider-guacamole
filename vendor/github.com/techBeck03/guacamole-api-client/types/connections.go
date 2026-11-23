@@ -239,7 +239,7 @@ func (GuacConnectionParameters) ValidTerminalTypes() []string {
 		"vt100",
 		"vt220",
 		"xterm",
-		"xterm-256color",
+		"xterm-25color",
 	}
 }
 
